@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import oasisLogo from '../assets/oasis_logo.png';
+import oasisBannerLogo from '../assets/oasis_banner_new.png';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -7,11 +9,12 @@ const Navbar = () => {
   return (
     <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-gray-100 shadow-sm transition-all duration-300">
       <div className="container mx-auto px-6 py-4 flex justify-between items-center">
-        <Link to="/" className="text-2xl font-black text-gray-900 flex items-center gap-2 group">
-          <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white text-xl shadow-lg shadow-indigo-200 group-hover:rotate-12 transition-transform">
-            🎓
-          </div>
-          <span className="tracking-tight">Oasis <span className="text-indigo-600">JEE</span></span>
+        <Link to="/" className="group flex items-center">
+          <img
+            src={oasisBannerLogo}
+            alt="Oasis IIT JEE"
+            className="h-10 md:h-14 w-auto object-contain transition-all duration-300 group-hover:scale-105 rounded-lg shadow-sm group-hover:shadow-md border border-gray-100/30"
+          />
         </Link>
         <div className="hidden lg:flex space-x-8 items-center">
           {[

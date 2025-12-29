@@ -1,6 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { FaFacebookF, FaTwitter, FaYoutube, FaInstagram, FaMapMarkerAlt, FaPhoneAlt, FaEnvelope, FaClock } from 'react-icons/fa';
+import oasisLogo from '../assets/oasis_logo.png';
+import oasisBannerLogo from '../assets/oasis_banner_new.png';
 
 const Footer = () => {
   return (
@@ -13,11 +15,12 @@ const Footer = () => {
 
           {/* Brand Section */}
           <div className="lg:col-span-4">
-            <Link to="/" className="text-3xl font-black mb-8 flex items-center gap-3">
-              <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-indigo-900 text-2xl shadow-xl">
-                🎓
-              </div>
-              <span>Oasis <span className="text-indigo-400">JEE</span></span>
+            <Link to="/" className="inline-block mb-8 group">
+              <img
+                src={oasisBannerLogo}
+                alt="Oasis IIT JEE"
+                className="h-16 md:h-24 w-auto object-contain transition-all duration-300 group-hover:scale-105 rounded-xl shadow-lg border border-white/5"
+              />
             </Link>
             <p className="text-gray-400 text-lg leading-relaxed mb-10 max-w-sm">
               Patna's premier coaching institute for IIT-JEE & Foundation. Empowering minds, transforming futures since 2014.

@@ -10,6 +10,7 @@ import {
     FaBell, FaCheckCircle, FaTimesCircle, FaInfoCircle, FaCreditCard, FaLock, FaCheck,
     FaChevronRight, FaSignOutAlt, FaHome, FaWallet, FaGraduationCap, FaEnvelopeOpenText
 } from 'react-icons/fa';
+import oasisLogo from '../assets/oasis_logo.png';
 
 ChartJS.register(CategoryScale, LinearScale, RadialLinearScale, BarElement, LineElement, PointElement, Title, Tooltip, Legend, Filler, ArcElement);
 
@@ -245,8 +246,8 @@ const ParentDashboard = () => {
             {/* Sidebar Navigation */}
             <aside className="w-80 bg-white border-r border-gray-100 flex flex-col p-8 fixed h-full z-30 transition-all no-print hidden lg:flex">
                 <div className="flex items-center gap-5 mb-14 px-2 group cursor-pointer">
-                    <div className="w-14 h-14 bg-gradient-to-br from-indigo-600 to-indigo-800 rounded-[1.5rem] flex items-center justify-center text-white shadow-[0_10px_20px_-5px_rgba(79,70,229,0.5)] transition-all duration-500 group-hover:rotate-12 group-hover:scale-110">
-                        <FaGraduationCap className="text-3xl" />
+                    <div className="w-14 h-14 bg-white rounded-[1.5rem] flex items-center justify-center shadow-[0_10px_20px_-5px_rgba(79,70,229,0.3)] transition-all duration-500 group-hover:rotate-12 group-hover:scale-110 overflow-hidden p-2">
+                        <img src={oasisLogo} alt="Oasis Logo" className="w-full h-full object-contain" />
                     </div>
                     <div className="flex flex-col">
                         <span className="text-3xl font-[900] tracking-tighter text-[#1e1b4b] leading-none mb-1">Oasis</span>
@@ -360,11 +361,11 @@ const ParentDashboard = () => {
                                     <div className="relative z-10 flex flex-col lg:flex-row items-center gap-14">
                                         <div className="relative">
                                             <div className="w-64 h-64 rounded-[4.5rem] p-2.5 bg-gradient-to-tr from-indigo-500 via-indigo-400 to-indigo-600 shadow-[0_20px_40px_rgba(99,102,241,0.3)] rotate-3 group-hover:rotate-6 transition-all duration-700">
-                                                <div className="w-full h-full rounded-[4.1rem] bg-white p-1.5 overflow-hidden">
+                                                <div className="w-full h-full rounded-[4.1rem] bg-indigo-50 p-6 flex items-center justify-center overflow-hidden">
                                                     {currentChild?.userId?.profilePhoto ? (
                                                         <img src={`http://localhost:5002${currentChild.userId.profilePhoto}`} className="w-full h-full object-cover rounded-[3.9rem] scale-105" alt="" />
                                                     ) : (
-                                                        <div className="w-full h-full flex items-center justify-center bg-indigo-50 text-indigo-300"><FaUserGraduate className="text-8xl" /></div>
+                                                        <img src={oasisLogo} className="w-40 h-40 object-contain opacity-40" alt="Logo Placeholder" />
                                                     )}
                                                 </div>
                                             </div>

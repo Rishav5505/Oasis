@@ -22,6 +22,7 @@ import {
   FaCheckCircle, FaExclamationTriangle, FaChartLine, FaRegClock,
   FaCogs, FaSignOutAlt, FaChevronRight, FaFileInvoiceDollar
 } from 'react-icons/fa';
+import oasisLogo from '../assets/oasis_logo.png';
 
 ChartJS.register(
   CategoryScale,
@@ -349,8 +350,8 @@ const AdminDashboard = () => {
       {/* Sidebar - Pro Layout */}
       <aside className="w-72 bg-indigo-900 text-indigo-100 flex-shrink-0 flex flex-col shadow-2xl z-20">
         <div className="p-8 flex items-center gap-4 border-b border-indigo-800/50">
-          <div className="w-12 h-12 bg-indigo-500 rounded-2xl flex items-center justify-center text-white shadow-lg rotate-3 group-hover:rotate-0 transition-all">
-            <FaUserGraduate className="text-2xl" />
+          <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-lg overflow-hidden p-2 group-hover:rotate-0 rotate-3 transition-all">
+            <img src={oasisLogo} alt="Oasis Logo" className="w-full h-full object-contain" />
           </div>
           <div>
             <h1 className="text-2xl font-black tracking-tight text-white">Oasis</h1>
@@ -648,8 +649,8 @@ const AdminDashboard = () => {
                       >
                         <td className="px-8 py-6">
                           <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-indigo-100 rounded-2xl flex items-center justify-center text-indigo-600 font-black text-lg group-hover:scale-110 transition-all">
-                              {student.name.charAt(0)}
+                            <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center shadow-sm overflow-hidden p-2 group-hover:scale-110 transition-all">
+                              <img src={oasisLogo} alt="Oasis Logo" className="w-full h-full object-contain opacity-40 group-hover:opacity-100 transition-all" />
                             </div>
                             <div>
                               <p className="font-bold text-gray-900 text-sm group-hover:text-indigo-600 transition-colors">{student.name}</p>

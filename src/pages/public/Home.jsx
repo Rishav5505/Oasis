@@ -113,33 +113,60 @@ const Home = () => {
           />
         ))}
 
-        {/* Dark Overlay for Readability (Reduced to 10% for maximum transparency) */}
-        <div className="absolute inset-0 bg-black/10 z-[1]"></div>
+        {/* Dark Overlay for Readability */}
+        <div className="absolute inset-0 bg-black/30 z-[1]"></div>
+
+        {/* Animated Background Blobs (Slightly more subtle) */}
+        <div className="absolute inset-0 overflow-hidden z-[2] pointer-events-none opacity-20">
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-600/30 rounded-full blur-[100px] animate-blob"></div>
+          <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-purple-600/30 rounded-full blur-[100px] animate-blob animation-delay-2000"></div>
+          <div className="absolute bottom-1/4 left-1/2 w-96 h-96 bg-pink-600/20 rounded-full blur-[100px] animate-blob animation-delay-4000"></div>
+        </div>
 
         <div className="container mx-auto px-4 relative z-10">
-          <div className="max-w-4xl mx-auto text-center bg-black/20 rounded-3xl p-8 md:p-12 border border-white/10 shadow-2xl">
-            <div className="inline-block bg-white/20 backdrop-blur-sm rounded-full px-6 py-2 mb-6 border border-white/10">
-              <span className="text-sm font-semibold text-white drop-shadow-md">🏆 10+ Years of Excellence in JEE Coaching</span>
+          <div className="max-w-4xl mx-auto text-center py-6">
+            <div className="inline-block bg-white/10 backdrop-blur-md rounded-full px-6 py-2 mb-8 border border-white/20 animate-reveal shadow-xl overflow-hidden relative">
+              <span className="relative text-xs md:text-sm font-bold text-white tracking-wider flex items-center gap-2">
+                <span className="animate-pulse text-indigo-400">🏆</span>
+                10+ Years of Excellence in JEE Coaching
+              </span>
             </div>
 
-            <h1 className="text-4xl md:text-6xl font-extrabold mb-6 leading-tight drop-shadow-[0_5px_15px_rgba(0,0,0,0.5)]">
-              Transform Your IIT Dream Into Reality
+            <h1 className="mb-6 leading-tight tracking-tight">
+              <span className="block text-4xl md:text-6xl font-black text-white mb-2 drop-shadow-2xl animate-reveal" style={{ animationDelay: '0.2s' }}>
+                Transform Your
+              </span>
+              <div className="flex justify-center">
+                <span className="text-3xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-amber-400 to-yellow-300 animate-typewriter drop-shadow-[0_0_20px_rgba(251,146,60,0.5)] py-2 px-1">
+                  IIT Dream Into Reality
+                </span>
+              </div>
             </h1>
 
-            <p className="text-xl md:text-2xl mb-4 text-indigo-100 font-semibold drop-shadow-md">
-              Expert Faculty • Smart ERP System • Proven Results
+            <p className="text-lg md:text-xl mb-8 animate-reveal font-bold tracking-tight drop-shadow-md" style={{ animationDelay: '2.5s' }}>
+              <span className="text-indigo-300">Expert Faculty</span>
+              <span className="mx-2 text-white/30">•</span>
+              <span className="text-purple-300">Smart ERP System</span>
+              <span className="mx-2 text-white/30">•</span>
+              <span className="text-pink-300">Proven Results</span>
             </p>
 
-            <p className="text-lg mb-10 text-gray-200 max-w-2xl mx-auto font-medium leading-relaxed drop-shadow-sm">
-              Join Patna's most trusted JEE coaching institute with 95% success rate and personalized attention.
+            <p className="text-base md:text-lg mb-10 text-gray-200 max-w-xl mx-auto font-medium leading-relaxed animate-reveal drop-shadow-sm" style={{ animationDelay: '2.7s' }}>
+              Join Patna's most trusted JEE coaching institute with
+              <span className="text-white font-bold mx-1 border-b border-indigo-500">95% success rate</span>
+              and personalized attention.
             </p>
 
-            <div className="flex flex-wrap gap-4 justify-center mb-12">
-              <a href="#demo-form" className="bg-white text-indigo-700 px-8 py-4 rounded-xl font-bold text-lg hover:bg-gray-100 hover:scale-105 transition-all duration-300 shadow-xl">
-                📞 Book Free Demo Class
+            <div className="flex flex-wrap gap-4 justify-center mb-12 animate-reveal" style={{ animationDelay: '2.9s' }}>
+              <a href="#demo-form" className="group relative bg-white text-indigo-900 px-8 py-4 rounded-xl font-black text-base transition-all duration-300 shadow-xl hover:-translate-y-1 active:scale-95 overflow-hidden">
+                <span className="relative flex items-center gap-2">
+                  <span>📞</span> Book Free Demo Class
+                </span>
               </a>
-              <a href="#courses" className="bg-indigo-600/20 backdrop-blur-md border border-white/30 text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-white hover:text-indigo-700 hover:scale-105 transition-all duration-300 shadow-lg">
-                📚 Explore Courses
+              <a href="#courses" className="group relative bg-indigo-600/10 backdrop-blur-xl border border-white/20 text-white px-8 py-4 rounded-xl font-black text-base transition-all duration-300 hover:bg-white hover:text-indigo-900 hover:-translate-y-1 active:scale-95 shadow-lg">
+                <span className="relative flex items-center gap-2">
+                  <span>📚</span> Explore Courses
+                </span>
               </a>
             </div>
 

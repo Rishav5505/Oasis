@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { AuthContext } from '../contexts/AuthContext';
 import { FaUser, FaCalendarAlt, FaBook, FaBullhorn, FaDownload, FaMoneyBillWave, FaClipboardList, FaGraduationCap, FaEdit, FaSave, FaTimes, FaCamera, FaBell, FaChartLine, FaClock, FaStar, FaCheckCircle, FaChevronRight } from 'react-icons/fa';
+import oasisLogo from '../assets/oasis_logo.png';
 
 const StudentDashboard = () => {
   const { user } = useContext(AuthContext);
@@ -271,8 +272,8 @@ const StudentDashboard = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-4">
-              <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
-                <FaGraduationCap className="text-white text-xl" />
+              <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-md overflow-hidden p-1">
+                <img src={oasisLogo} alt="Oasis Logo" className="w-full h-full object-contain" />
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">Student Portal</h1>
@@ -335,7 +336,7 @@ const StudentDashboard = () => {
                 <p className="text-blue-100 mb-4">Ready to continue your learning journey?</p>
                 <div className="flex items-center space-x-4 text-sm">
                   <span className="flex items-center">
-                    <FaGraduationCap className="mr-2" />
+                    <img src={oasisLogo} alt="Logo" className="w-4 h-4 mr-2 object-contain" />
                     Class: {student.classId?.name || 'Not Assigned'}
                   </span>
                   <span className="flex items-center">

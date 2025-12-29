@@ -7,6 +7,7 @@ import {
   FaChevronRight, FaSignOutAlt, FaRegClock, FaCheckCircle,
   FaTimesCircle, FaFileUpload, FaUserGraduate, FaClipboardList
 } from 'react-icons/fa';
+import oasisLogo from '../assets/oasis_logo.png';
 
 const TeacherDashboard = () => {
   const { user } = useContext(AuthContext);
@@ -178,8 +179,8 @@ const TeacherDashboard = () => {
       {/* Sidebar */}
       <aside className="w-72 bg-emerald-900 text-emerald-100 flex-shrink-0 flex flex-col shadow-2xl z-20">
         <div className="p-8 flex items-center gap-4 border-b border-emerald-800/50">
-          <div className="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center text-white shadow-lg rotate-3">
-            <FaChalkboardTeacher className="text-2xl" />
+          <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-lg overflow-hidden p-2">
+            <img src={oasisLogo} alt="Oasis Logo" className="w-full h-full object-contain" />
           </div>
           <div>
             <h1 className="text-2xl font-black tracking-tight text-white">Oasis</h1>
