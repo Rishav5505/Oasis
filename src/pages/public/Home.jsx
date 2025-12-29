@@ -1,0 +1,637 @@
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import Navbar from '../../components/Navbar';
+import Footer from '../../components/Footer';
+import best1 from '../../assets/best.jpg';
+import best2 from '../../assets/best 2.jpg';
+import best3 from '../../assets/best 3.jpg';
+import bnner from '../../assets/Bnner.jpg';
+
+// Coaching Photos for Gallery
+import coaching1 from '../../assets/474589765_1276841513370808_7764133733018340516_n.jpg';
+import coaching2 from '../../assets/474709499_1278016816586611_5145336952645222805_n.jpg';
+import coaching3 from '../../assets/475415780_1285121682542791_8365407221338603766_n.jpg';
+import coaching4 from '../../assets/475650196_1285121685876124_4721209917245273032_n.jpg';
+import coaching5 from '../../assets/475679772_1285121712542788_7912544254822272362_n.jpg';
+import coaching6 from '../../assets/475774089_1285121659209460_7756818827304219133_n.jpg';
+import coaching7 from '../../assets/475874688_1285121709209455_8696569436817650851_n.jpg';
+import coaching8 from '../../assets/475970746_1284020299319596_786940650357844988_n.jpg';
+import coaching9 from '../../assets/476155997_1285121702542789_8367462175423701049_n.jpg';
+import coaching10 from '../../assets/476640718_1290058428715783_719137760532989198_n.jpg';
+import coaching11 from '../../assets/476644184_1290058588715767_7843985879107140710_n.jpg';
+import coaching12 from '../../assets/550492546_1326566672187200_6186828262730265257_n.jpg';
+
+
+const Home = () => {
+  const [faculty, setFaculty] = useState([]);
+  const [courses, setCourses] = useState([]);
+  const [testimonials, setTestimonials] = useState([]);
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    course: 'JEE Main',
+    batchTiming: 'Morning',
+    message: ''
+  });
+  const [formStatus, setFormStatus] = useState({ message: '', type: '' });
+
+  const heroImages = [best1, best2, best3];
+  const [currentHeroIndex, setCurrentHeroIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentHeroIndex((prev) => (prev + 1) % heroImages.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    // Fetch faculty data
+    fetch('http://localhost:5002/api/public/faculty')
+      .then(res => res.json())
+      .then(data => setFaculty(data))
+      .catch(err => console.error('Error fetching faculty:', err));
+
+    // Fetch courses data
+    fetch('http://localhost:5002/api/public/courses')
+      .then(res => res.json())
+      .then(data => setCourses(data))
+      .catch(err => console.error('Error fetching courses:', err));
+
+    // Fetch testimonials
+    fetch('http://localhost:5002/api/public/testimonials')
+      .then(res => res.json())
+      .then(data => setTestimonials(data))
+      .catch(err => console.error('Error fetching testimonials:', err));
+  }, []);
+
+  const handleInputChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setFormStatus({ message: '', type: '' });
+
+    try {
+      const response = await fetch('http://localhost:5002/api/leads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setFormStatus({ message: data.message, type: 'success' });
+        setFormData({ name: '', email: '', phone: '', course: 'JEE Main', batchTiming: 'Morning', message: '' });
+      } else {
+        setFormStatus({ message: data.message, type: 'error' });
+      }
+    } catch (err) {
+      setFormStatus({ message: 'Failed to submit. Please try again.', type: 'error' });
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Navbar />
+
+      <section className="relative min-h-[90vh] flex items-center text-white overflow-hidden bg-black">
+        {/* Background Slideshow */}
+        {heroImages.map((img, idx) => (
+          <div
+            key={idx}
+            className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${idx === currentHeroIndex ? 'opacity-100' : 'opacity-0'
+              }`}
+            style={{
+              backgroundImage: `url(${img})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+            }}
+          />
+        ))}
+
+        {/* Dark Overlay for Readability (Reduced to 10% for maximum transparency) */}
+        <div className="absolute inset-0 bg-black/10 z-[1]"></div>
+
+        <div className="container mx-auto px-4 relative z-10">
+          <div className="max-w-4xl mx-auto text-center bg-black/20 rounded-3xl p-8 md:p-12 border border-white/10 shadow-2xl">
+            <div className="inline-block bg-white/20 backdrop-blur-sm rounded-full px-6 py-2 mb-6 border border-white/10">
+              <span className="text-sm font-semibold text-white drop-shadow-md">🏆 10+ Years of Excellence in JEE Coaching</span>
+            </div>
+
+            <h1 className="text-4xl md:text-6xl font-extrabold mb-6 leading-tight drop-shadow-[0_5px_15px_rgba(0,0,0,0.5)]">
+              Transform Your IIT Dream Into Reality
+            </h1>
+
+            <p className="text-xl md:text-2xl mb-4 text-indigo-100 font-semibold drop-shadow-md">
+              Expert Faculty • Smart ERP System • Proven Results
+            </p>
+
+            <p className="text-lg mb-10 text-gray-200 max-w-2xl mx-auto font-medium leading-relaxed drop-shadow-sm">
+              Join Patna's most trusted JEE coaching institute with 95% success rate and personalized attention.
+            </p>
+
+            <div className="flex flex-wrap gap-4 justify-center mb-12">
+              <a href="#demo-form" className="bg-white text-indigo-700 px-8 py-4 rounded-xl font-bold text-lg hover:bg-gray-100 hover:scale-105 transition-all duration-300 shadow-xl">
+                📞 Book Free Demo Class
+              </a>
+              <a href="#courses" className="bg-indigo-600/20 backdrop-blur-md border border-white/30 text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-white hover:text-indigo-700 hover:scale-105 transition-all duration-300 shadow-lg">
+                📚 Explore Courses
+              </a>
+            </div>
+
+            {/* Stats Overlay inside the glass container */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10">
+                <div className="text-3xl font-bold text-white">500+</div>
+                <div className="text-xs uppercase tracking-wider opacity-80 mt-1">Students</div>
+              </div>
+              <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10">
+                <div className="text-3xl font-bold text-white">95%</div>
+                <div className="text-xs uppercase tracking-wider opacity-80 mt-1">Success Rate</div>
+              </div>
+              <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10">
+                <div className="text-3xl font-bold text-white">50+</div>
+                <div className="text-xs uppercase tracking-wider opacity-80 mt-1">Expert Faculty</div>
+              </div>
+              <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10">
+                <div className="text-3xl font-bold text-white">10+</div>
+                <div className="text-xs uppercase tracking-wider opacity-80 mt-1">Years Exp.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Quick Login Shortcuts */}
+      <section className="py-8 bg-white border-b">
+        <div className="container mx-auto px-4">
+          <div className="max-w-5xl mx-auto">
+            <h3 className="text-center text-gray-700 font-semibold mb-4">🚀 Quick Access Portal</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Link to="/login" className="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-4 rounded-lg text-center hover:scale-105 transition-transform shadow-md">
+                <div className="text-3xl mb-2">👨‍🎓</div>
+                <div className="font-semibold">Student Login</div>
+              </Link>
+              <Link to="/login" className="bg-gradient-to-r from-green-500 to-green-600 text-white p-4 rounded-lg text-center hover:scale-105 transition-transform shadow-md">
+                <div className="text-3xl mb-2">👨‍🏫</div>
+                <div className="font-semibold">Teacher Login</div>
+              </Link>
+              <Link to="/login" className="bg-gradient-to-r from-purple-500 to-purple-600 text-white p-4 rounded-lg text-center hover:scale-105 transition-transform shadow-md">
+                <div className="text-3xl mb-2">👨‍👩‍👦</div>
+                <div className="font-semibold">Parent Login</div>
+              </Link>
+              <Link to="/login" className="bg-gradient-to-r from-red-500 to-red-600 text-white p-4 rounded-lg text-center hover:scale-105 transition-transform shadow-md">
+                <div className="text-3xl mb-2">⚙️</div>
+                <div className="font-semibold">Admin Login</div>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Courses & Batches Section */}
+      <section id="courses" className="py-20 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-bold text-gray-800 mb-4">Our Courses & Batches</h2>
+            <p className="text-gray-600 text-lg">Comprehensive programs designed for JEE success</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+            {courses.map(course => (
+              <div key={course.id} className="bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden group">
+                <div className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white p-6">
+                  <h3 className="text-2xl font-bold mb-2">{course.name}</h3>
+                  <p className="text-sm opacity-90">Duration: {course.duration}</p>
+                </div>
+                <div className="p-6">
+                  <p className="text-gray-600 mb-4">{course.description}</p>
+                  <div className="mb-4">
+                    <h4 className="font-semibold text-gray-800 mb-2">Key Features:</h4>
+                    <ul className="space-y-1">
+                      {course.features.map((feature, idx) => (
+                        <li key={idx} className="text-sm text-gray-600 flex items-center">
+                          <span className="text-green-500 mr-2">✓</span> {feature}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <a href="#demo-form" className="block text-center bg-indigo-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors">
+                    Enroll Now
+                  </a>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-12 text-center">
+            <p className="text-gray-700 mb-4 text-lg font-semibold">📅 Batch Timings Available:</p>
+            <div className="flex flex-wrap gap-4 justify-center">
+              <span className="bg-blue-100 text-blue-700 px-6 py-2 rounded-full font-semibold">Morning (6 AM - 9 AM)</span>
+              <span className="bg-green-100 text-green-700 px-6 py-2 rounded-full font-semibold">Day (9 AM - 12 PM)</span>
+              <span className="bg-purple-100 text-purple-700 px-6 py-2 rounded-full font-semibold">Evening (4 PM - 7 PM)</span>
+              <span className="bg-orange-100 text-orange-700 px-6 py-2 rounded-full font-semibold">Weekend Batches</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Smart ERP Features Section */}
+      <section className="py-20 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-bold text-gray-800 mb-4">Smart ERP System</h2>
+            <p className="text-gray-600 text-lg">Technology-driven coaching for modern learning</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+            <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-8 rounded-xl hover:shadow-xl transition-shadow">
+              <div className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center text-white text-3xl mb-4">
+                📊
+              </div>
+              <h3 className="text-xl font-bold text-gray-800 mb-3">Real-Time Attendance</h3>
+              <p className="text-gray-600">Track student attendance instantly with automated SMS alerts to parents</p>
+            </div>
+
+            <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-8 rounded-xl hover:shadow-xl transition-shadow">
+              <div className="w-16 h-16 bg-purple-500 rounded-full flex items-center justify-center text-white text-3xl mb-4">
+                👨‍👩‍👦
+              </div>
+              <h3 className="text-xl font-bold text-gray-800 mb-3">Parent Dashboard</h3>
+              <p className="text-gray-600">Complete visibility into performance, attendance, fees, and progress reports</p>
+            </div>
+
+            <div className="bg-gradient-to-br from-green-50 to-green-100 p-8 rounded-xl hover:shadow-xl transition-shadow">
+              <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center text-white text-3xl mb-4">
+                🔔
+              </div>
+              <h3 className="text-xl font-bold text-gray-800 mb-3">Live Notifications</h3>
+              <p className="text-gray-600">Instant updates on exams, results, notices, and important announcements</p>
+            </div>
+
+            <div className="bg-gradient-to-br from-orange-50 to-orange-100 p-8 rounded-xl hover:shadow-xl transition-shadow">
+              <div className="w-16 h-16 bg-orange-500 rounded-full flex items-center justify-center text-white text-3xl mb-4">
+                📈
+              </div>
+              <h3 className="text-xl font-bold text-gray-800 mb-3">Performance Analytics</h3>
+              <p className="text-gray-600">Detailed insights and visualizations to track academic progress over time</p>
+            </div>
+
+            <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 p-8 rounded-xl hover:shadow-xl transition-shadow">
+              <div className="w-16 h-16 bg-indigo-500 rounded-full flex items-center justify-center text-white text-3xl mb-4">
+                📚
+              </div>
+              <h3 className="text-xl font-bold text-gray-800 mb-3">Online Study Material</h3>
+              <p className="text-gray-600">Access notes, practice papers, and resources anytime from student portal</p>
+            </div>
+
+            <div className="bg-gradient-to-br from-pink-50 to-pink-100 p-8 rounded-xl hover:shadow-xl transition-shadow">
+              <div className="w-16 h-16 bg-pink-500 rounded-full flex items-center justify-center text-white text-3xl mb-4">
+                💰
+              </div>
+              <h3 className="text-xl font-bold text-gray-800 mb-3">Fee Management</h3>
+              <p className="text-gray-600">Transparent fee tracking with online payment options and instant receipts</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Faculty Showcase Section */}
+      {faculty.length > 0 && (
+        <section className="py-20 bg-gray-50">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-12">
+              <h2 className="text-4xl font-bold text-gray-800 mb-4">Our Expert Faculty</h2>
+              <p className="text-gray-600 text-lg">Learn from IIT alumni and experienced educators</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+              {faculty.map(member => (
+                <div key={member.id} className="bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 p-6 text-center">
+                  <div className="w-24 h-24 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white text-4xl mx-auto mb-4">
+                    {member.photo ? (
+                      <img src={member.photo} alt={member.name} className="w-full h-full rounded-full object-cover" />
+                    ) : (
+                      '👨‍🏫'
+                    )}
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-800 mb-2">{member.name}</h3>
+                  <p className="text-indigo-600 font-semibold mb-2">{member.subjects}</p>
+                  <p className="text-gray-600 text-sm">{member.classes}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="text-center mt-8">
+              <Link to="/faculty" className="inline-block bg-indigo-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors">
+                View All Faculty →
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* How It Works Section */}
+      <section className="py-20 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-bold text-gray-800 mb-4">How It Works</h2>
+            <p className="text-gray-600 text-lg">Simple steps to start your JEE journey</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 max-w-6xl mx-auto">
+            <div className="text-center">
+              <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white text-3xl font-bold mx-auto mb-4">
+                1
+              </div>
+              <h3 className="text-xl font-bold text-gray-800 mb-3">Book Demo</h3>
+              <p className="text-gray-600">Fill the enquiry form and schedule your free demo class</p>
+            </div>
+
+            <div className="text-center">
+              <div className="w-20 h-20 bg-gradient-to-r from-green-500 to-green-600 rounded-full flex items-center justify-center text-white text-3xl font-bold mx-auto mb-4">
+                2
+              </div>
+              <h3 className="text-xl font-bold text-gray-800 mb-3">Attend Demo</h3>
+              <p className="text-gray-600">Experience our teaching methodology and meet our faculty</p>
+            </div>
+
+            <div className="text-center">
+              <div className="w-20 h-20 bg-gradient-to-r from-purple-500 to-purple-600 rounded-full flex items-center justify-center text-white text-3xl font-bold mx-auto mb-4">
+                3
+              </div>
+              <h3 className="text-xl font-bold text-gray-800 mb-3">Complete Enrollment</h3>
+              <p className="text-gray-600">Choose your batch and complete the admission process</p>
+            </div>
+
+            <div className="text-center">
+              <div className="w-20 h-20 bg-gradient-to-r from-orange-500 to-orange-600 rounded-full flex items-center justify-center text-white text-3xl font-bold mx-auto mb-4">
+                4
+              </div>
+              <h3 className="text-xl font-bold text-gray-800 mb-3">Achieve Success</h3>
+              <p className="text-gray-600">Begin your personalized learning journey to crack JEE</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Parent Testimonials Section */}
+      {testimonials.length > 0 && (
+        <section className="py-20 bg-gradient-to-br from-indigo-50 to-purple-50">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-12">
+              <h2 className="text-4xl font-bold text-gray-800 mb-4">What Parents Say</h2>
+              <p className="text-gray-600 text-lg">Real experiences from satisfied parents</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+              {testimonials.map(testimonial => (
+                <div key={testimonial.id} className="bg-white rounded-xl shadow-lg p-8 hover:shadow-2xl transition-shadow">
+                  <div className="flex mb-4">
+                    {[...Array(testimonial.rating)].map((_, i) => (
+                      <span key={i} className="text-yellow-400 text-xl">⭐</span>
+                    ))}
+                  </div>
+                  <p className="text-gray-600 italic mb-6">"{testimonial.quote}"</p>
+                  <div className="border-t pt-4">
+                    <p className="font-bold text-gray-800">{testimonial.parentName}</p>
+                    <p className="text-sm text-gray-600 mt-1">Parent of {testimonial.studentName}</p>
+                    <p className="text-sm text-indigo-600 font-semibold mt-1">{testimonial.achievement}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Events Gallery Section */}
+      <section className="py-20 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-bold text-gray-800 mb-4">Life at Oasis: Events Gallery</h2>
+            <p className="text-gray-600 text-lg">Glimpses of our vibrant campus life, celebrations, and achievements</p>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 max-w-7xl mx-auto">
+            {[
+              { img: coaching1, title: "Scholarship Distribution", size: "col-span-1 row-span-1" },
+              { img: coaching2, title: "Classroom Interaction", size: "md:col-span-2 md:row-span-2 col-span-2" },
+              { img: coaching3, title: "Student Guidance", size: "col-span-1 row-span-1" },
+              { img: coaching4, title: "Achievement Celebration", size: "col-span-1 row-span-1" },
+              { img: coaching5, title: "Doubt Clearing Session", size: "col-span-1 row-span-1" },
+              { img: coaching6, title: "Success Stories", size: "md:col-span-2 md:row-span-1 col-span-2" },
+              { img: coaching7, title: "Exam Preparation", size: "col-span-1 row-span-1" },
+              { img: coaching8, title: "Expert Mentorship", size: "col-span-1 row-span-1" },
+              { img: coaching9, title: "Campus Life", size: "col-span-1 row-span-1" },
+              { img: coaching10, title: "Annual Day", size: "md:col-span-2 md:row-span-1 col-span-2" },
+              { img: coaching11, title: "Award Ceremony", size: "col-span-1 row-span-1" },
+              { img: coaching12, title: "Classroom Learning", size: "col-span-1 row-span-1" },
+            ].map((item, idx) => (
+              <div key={idx} className={`group relative overflow-hidden rounded-2xl shadow-lg border border-gray-100 ${item.size} cursor-pointer`}>
+                <img
+                  src={item.img}
+                  alt={item.title}
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
+                  <h3 className="text-white font-bold text-sm md:text-lg">{item.title}</h3>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-12 text-center">
+            <Link to="/gallery" className="inline-block bg-indigo-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg hover:shadow-indigo-500/30 transform hover:-translate-y-1">
+              Explore Our Campus →
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Free Demo Enquiry Form Section */}
+      <section id="demo-form" className="py-20 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <div className="max-w-2xl mx-auto bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl shadow-2xl p-8 md:p-12 text-white">
+            <div className="text-center mb-8">
+              <h2 className="text-4xl font-bold mb-4">Book Your Free Demo Class</h2>
+              <p className="text-lg opacity-90">Take the first step towards your IIT dream</p>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div>
+                <label className="block text-sm font-semibold mb-2">Full Name *</label>
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  required
+                  className="w-full px-4 py-3 rounded-lg text-gray-800 focus:ring-2 focus:ring-white outline-none"
+                  placeholder="Enter your full name"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-semibold mb-2">Email *</label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-4 py-3 rounded-lg text-gray-800 focus:ring-2 focus:ring-white outline-none"
+                    placeholder="your@email.com"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold mb-2">Phone Number *</label>
+                  <input
+                    type="tel"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleInputChange}
+                    required
+                    pattern="[0-9]{10}"
+                    className="w-full px-4 py-3 rounded-lg text-gray-800 focus:ring-2 focus:ring-white outline-none"
+                    placeholder="10-digit number"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-semibold mb-2">Course Interest</label>
+                  <select
+                    name="course"
+                    value={formData.course}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 rounded-lg text-gray-800 focus:ring-2 focus:ring-white outline-none"
+                  >
+                    <option value="JEE Main">JEE Main</option>
+                    <option value="JEE Advanced">JEE Advanced</option>
+                    <option value="Foundation">Foundation (9th-10th)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold mb-2">Preferred Batch</label>
+                  <select
+                    name="batchTiming"
+                    value={formData.batchTiming}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 rounded-lg text-gray-800 focus:ring-2 focus:ring-white outline-none"
+                  >
+                    <option value="Morning">Morning (6 AM - 9 AM)</option>
+                    <option value="Day">Day (9 AM - 12 PM)</option>
+                    <option value="Evening">Evening (4 PM - 7 PM)</option>
+                    <option value="Weekend">Weekend</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold mb-2">Message (Optional)</label>
+                <textarea
+                  name="message"
+                  value={formData.message}
+                  onChange={handleInputChange}
+                  rows="3"
+                  className="w-full px-4 py-3 rounded-lg text-gray-800 focus:ring-2 focus:ring-white outline-none resize-none"
+                  placeholder="Any specific queries or requirements?"
+                ></textarea>
+              </div>
+
+              <button
+                type="submit"
+                className="w-full bg-white text-indigo-600 px-8 py-4 rounded-lg font-bold text-lg hover:bg-gray-100 hover:scale-105 transition-all duration-300 shadow-lg"
+              >
+                📞 Request Free Demo Class
+              </button>
+
+              {formStatus.message && (
+                <div className={`p-4 rounded-lg text-center font-semibold ${formStatus.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                  }`}>
+                  {formStatus.message}
+                </div>
+              )}
+            </form>
+          </div>
+        </div>
+      </section>
+
+      {/* Contact & Location Section */}
+      <section className="py-20 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-bold text-gray-800 mb-4">Visit Us</h2>
+            <p className="text-gray-600 text-lg">We're here to help you succeed</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl mx-auto">
+            <div className="bg-white rounded-xl shadow-lg p-8">
+              <h3 className="text-2xl font-bold text-gray-800 mb-6">Contact Information</h3>
+
+              <div className="space-y-4">
+                <div className="flex items-start">
+                  <div className="text-2xl mr-4">📍</div>
+                  <div>
+                    <p className="font-semibold text-gray-800">Address</p>
+                    <p className="text-gray-600">Above Corporation Bank, Saguna More<br />Patna - 800001, Bihar</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start">
+                  <div className="text-2xl mr-4">📞</div>
+                  <div>
+                    <p className="font-semibold text-gray-800">Phone</p>
+                    <p className="text-gray-600">+91-0612-XXXXXXX</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start">
+                  <div className="text-2xl mr-4">✉️</div>
+                  <div>
+                    <p className="font-semibold text-gray-800">Email</p>
+                    <p className="text-gray-600">info@oasisjeeclasses.com</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start">
+                  <div className="text-2xl mr-4">🕒</div>
+                  <div>
+                    <p className="font-semibold text-gray-800">Office Hours</p>
+                    <p className="text-gray-600">Mon - Sat: 9:00 AM - 6:00 PM<br />Sunday: By Appointment</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+              <iframe
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3598.0743445!2d85.1376!3d25.5941!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMjXCsDM1JzM4LjgiTiA4NcKwMDgnMTUuNCJF!5e0!3m2!1sen!2sin!4v1234567890"
+                width="100%"
+                height="400"
+                style={{ border: 0 }}
+                allowFullScreen=""
+                loading="lazy"
+                title="Oasis JEE Classes Location"
+                className="w-full h-full"
+              ></iframe>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <Footer />
+    </div>
+  );
+};
+
+export default Home;
