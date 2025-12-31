@@ -119,11 +119,11 @@ const Home = () => {
       <Navbar />
 
       <section className="relative min-h-[90vh] flex items-center text-white overflow-hidden bg-black w-full">
-        {/* Background Slideshow */}
+        {/* Background Slideshow - Optimized for High Contrast */}
         {heroImages.map((img, idx) => (
           <div
             key={idx}
-            className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${idx === currentHeroIndex ? 'opacity-100' : 'opacity-0'
+            className={`absolute inset-0 transition-opacity duration-1000 ease-in-out brightness-[0.5] blur-[1px] scale-100 ${idx === currentHeroIndex ? 'opacity-100' : 'opacity-0'
               }`}
             style={{
               backgroundImage: `url(${img})`,
@@ -133,80 +133,68 @@ const Home = () => {
           />
         ))}
 
-        {/* Dark Overlay for Readability */}
-        <div className="absolute inset-0 bg-black/30 z-[1]"></div>
+        {/* Cinematic Dark Overlay for Maximum Text Pop */}
+        <div className="absolute inset-0 bg-black/40 z-[5]"></div>
 
-        {/* Animated Background Blobs (Slightly more subtle) */}
-        <div className="absolute inset-0 overflow-hidden z-[2] pointer-events-none opacity-20">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-600/30 rounded-full blur-[100px] animate-blob"></div>
-          <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-purple-600/30 rounded-full blur-[100px] animate-blob animation-delay-2000"></div>
-          <div className="absolute bottom-1/4 left-1/2 w-96 h-96 bg-pink-600/20 rounded-full blur-[100px] animate-blob animation-delay-4000"></div>
-        </div>
-
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="max-w-4xl mx-auto text-center py-6">
-            <div className="inline-block bg-white/10 backdrop-blur-md rounded-full px-6 py-2 mb-8 border border-white/20 animate-reveal shadow-xl overflow-hidden relative">
-              <span className="relative text-xs md:text-sm font-bold text-white tracking-wider flex items-center gap-2">
-                <span className="animate-pulse text-indigo-400">🏆</span>
+        <div className="container mx-auto px-4 relative z-20">
+          <div className="max-w-5xl mx-auto text-center">
+            {/* Badge as seen in screenshot */}
+            <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md rounded-full px-5 py-2 mb-8 border border-white/20">
+              <span className="text-yellow-400 text-lg">🏆</span>
+              <span className="text-xs md:text-sm font-semibold text-white tracking-wide uppercase">
                 10+ Years of Excellence in JEE Coaching
               </span>
             </div>
 
-            <h1 className="mb-6 leading-tight tracking-tight">
-              <span className="block text-4xl md:text-6xl font-black text-white mb-2 drop-shadow-2xl animate-reveal" style={{ animationDelay: '0.2s' }}>
+            {/* Headline with matched colors - Size decreased slightly */}
+            <h1 className="mb-6 leading-tight">
+              <span className="block text-3xl md:text-4xl font-extrabold text-white mb-2">
                 Transform Your
               </span>
-              <div className="flex justify-center">
-                <span className="text-3xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-amber-400 to-yellow-300 animate-typewriter drop-shadow-[0_0_20px_rgba(251,146,60,0.5)] py-2 px-1">
-                  IIT Dream Into Reality
-                </span>
-              </div>
+              <span className="block text-3xl md:text-5xl font-black text-yellow-400 tracking-tight">
+                IIT Dream Into Reality
+              </span>
             </h1>
 
-            <p className="text-lg md:text-xl mb-8 animate-reveal font-bold tracking-tight drop-shadow-md" style={{ animationDelay: '2.5s' }}>
-              <span className="text-indigo-300">Expert Faculty</span>
-              <span className="mx-2 text-white/30">•</span>
-              <span className="text-purple-300">Smart ERP System</span>
-              <span className="mx-2 text-white/30">•</span>
-              <span className="text-pink-300">Proven Results</span>
+            {/* Sub-features line */}
+            <p className="text-xl md:text-lg font-bold text-white/90 mb-8 tracking-wide">
+              Expert Faculty <span className="mx-2 opacity-50">•</span> Smart ERP System <span className="mx-2 opacity-50">•</span> Proven Results
             </p>
 
-            <p className="text-base md:text-lg mb-10 text-gray-200 max-w-xl mx-auto font-medium leading-relaxed animate-reveal drop-shadow-sm" style={{ animationDelay: '2.7s' }}>
+            {/* Main Description */}
+            <p className="text-lg md:text-lg text-white/80 max-w-3xl mx-auto leading-relaxed mb-10">
               Join Patna's most trusted JEE coaching institute with
-              <span className="text-white font-bold mx-1 border-b border-indigo-500">95% success rate</span>
+              <span className="text-white font-bold border-b-2 border-white/40 mx-1"> 95% success rate </span>
               and personalized attention.
             </p>
 
-            <div className="flex flex-wrap gap-4 justify-center mb-12 animate-reveal" style={{ animationDelay: '2.9s' }}>
-              <a href="#demo-form" className="group relative bg-white text-indigo-900 px-8 py-4 rounded-xl font-black text-base transition-all duration-300 shadow-xl hover:-translate-y-1 active:scale-95 overflow-hidden">
-                <span className="relative flex items-center gap-2">
-                  <span>📞</span> Book Free Demo Class
-                </span>
+            {/* CTA Buttons - Matching Screenshot */}
+            <div className="flex flex-col sm:flex-row gap-2 justify-center mb-16">
+              <a href="#demo-form" className="bg-white text-indigo-900 px-8 py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-3 hover:bg-gray-100 transition-all shadow-xl">
+                <span className="text-xl">📞</span> Book Free Demo Class
               </a>
-              <a href="#courses" className="group relative bg-indigo-600/10 backdrop-blur-xl border border-white/20 text-white px-8 py-4 rounded-xl font-black text-base transition-all duration-300 hover:bg-white hover:text-indigo-900 hover:-translate-y-1 active:scale-95 shadow-lg">
-                <span className="relative flex items-center gap-2">
-                  <span>📚</span> Explore Courses
-                </span>
+              <a href="#courses" className="bg-indigo-950/40 backdrop-blur-md border border-white/10 text-white px-8 py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-3 hover:bg-white/10 transition-all shadow-xl">
+                <span className="text-xl">📚</span> Explore Courses
               </a>
             </div>
 
-            {/* Stats Overlay inside the glass container */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10">
-                <div className="text-3xl font-bold text-white">500+</div>
-                <div className="text-xs uppercase tracking-wider opacity-80 mt-1">Students</div>
+            {/* Bottom Stats Container - Glassmorphism style from screenshot */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 px-0 py-2 bg-white/5 backdrop-blur-lg rounded-3xl border border-white/10 shadow-4xl">
+              <div className="text-center group border-r border-white/10 last:border-0">
+                <div className="text-3xl md:text-4xl font-black text-white mb-1 group-hover:scale-105 transition-transform">+500</div>
+                <div className="text-[10px] md:text-xs uppercase font-bold tracking-[0.2em] text-white/60">Students</div>
               </div>
-              <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10">
-                <div className="text-3xl font-bold text-white">95%</div>
-                <div className="text-xs uppercase tracking-wider opacity-80 mt-1">Success Rate</div>
+              <div className="text-center group border-r border-white/10 last:border-0">
+                <div className="text-3xl md:text-4xl font-black text-white mb-1 group-hover:scale-105 transition-transform">95%</div>
+                <div className="text-[10px] md:text-xs uppercase font-bold tracking-[0.2em] text-white/60">Success Rate</div>
               </div>
-              <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10">
-                <div className="text-3xl font-bold text-white">50+</div>
-                <div className="text-xs uppercase tracking-wider opacity-80 mt-1">Expert Faculty</div>
+              <div className="text-center group border-r border-white/10 last:border-0">
+                <div className="text-3xl md:text-4xl font-black text-white mb-1 group-hover:scale-105 transition-transform">+50</div>
+                <div className="text-[10px] md:text-xs uppercase font-bold tracking-[0.2em] text-white/60">Expert Faculty</div>
               </div>
-              <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10">
-                <div className="text-3xl font-bold text-white">10+</div>
-                <div className="text-xs uppercase tracking-wider opacity-80 mt-1">Years Exp.</div>
+              <div className="text-center group">
+                <div className="text-3xl md:text-4xl font-black text-white mb-1 group-hover:scale-105 transition-transform">+10</div>
+                <div className="text-[10px] md:text-xs uppercase font-bold tracking-[0.2em] text-white/60">Years Exp.</div>
               </div>
             </div>
           </div>
