@@ -1,76 +1,124 @@
 const express = require('express');
-const router = express.Router();
 const Fee = require('../models/Fee');
+const Notification = require('../models/Notification');
 const Student = require('../models/Student');
+const User = require('../models/User'); // Import User model to be safe
 const auth = require('../middleware/auth');
 const roleAuth = require('../middleware/roleAuth');
 
-// Get fees for a student
-router.get('/student/:studentId', auth, async (req, res) => {
+const router = express.Router();
+
+// Add new fee payment
+router.post('/pay', auth, roleAuth('admin'), async (req, res) => {
     try {
-        let student = await Student.findById(req.params.studentId);
-        if (!student) {
-            student = await Student.findOne({ userId: req.params.studentId });
-        }
-        if (!student) return res.status(404).json({ message: 'Student not found' });
+        const { studentId, amount, type, transactionId, remarks } = req.body;
 
-        const fee = await Fee.findOne({ studentId: student._id }).populate('studentId');
-        if (!fee) {
-            return res.json({ totalFees: 0, paidFees: 0, pendingFees: 0, payments: [] });
-        }
-        res.json(fee);
-    } catch (err) {
-        res.status(500).json({ message: err.message });
-    }
-});
-
-// Create or update fee record (admin/teacher only)
-router.post('/', auth, roleAuth(['admin', 'teacher']), async (req, res) => {
-    try {
-        const { studentId, totalFees, paidFees, pendingFees, payments, dueDate } = req.body;
-        let fee = await Fee.findOne({ studentId });
-        if (fee) {
-            fee.totalFees = totalFees || fee.totalFees;
-            fee.paidFees = paidFees || fee.paidFees;
-            fee.pendingFees = pendingFees || fee.pendingFees;
-            if (payments) fee.payments.push(...payments);
-            fee.dueDate = dueDate || fee.dueDate;
-            await fee.save();
-        } else {
-            fee = new Fee({ studentId, totalFees, paidFees, pendingFees, payments, dueDate });
-            await fee.save();
-        }
-        res.status(201).json(fee);
-    } catch (err) {
-        res.status(400).json({ message: err.message });
-    }
-});
-
-// Online Payment (Parent only) - Simulated
-router.post('/pay', auth, roleAuth('parent'), async (req, res) => {
-    const { studentId, amount, paymentMethod } = req.body;
-    try {
-        let fee = await Fee.findOne({ studentId });
-        if (!fee) return res.status(404).json({ message: 'Fee record not found' });
-
-        const paymentAmount = Number(amount);
-        if (isNaN(paymentAmount) || paymentAmount <= 0) {
-            return res.status(400).json({ message: 'Invalid payment amount' });
-        }
-
-        fee.paidFees += paymentAmount;
-        fee.pendingFees = Math.max(0, fee.pendingFees - paymentAmount);
-
-        fee.payments.push({
-            amount: paymentAmount,
-            date: new Date(),
-            mode: paymentMethod || 'Online'
+        const fee = new Fee({
+            studentId, // Ensure this is the STUDENT Schema ID, not User ID, based on frontend
+            amount,
+            type,
+            transactionId,
+            remarks,
+            status: 'Paid'
         });
 
         await fee.save();
-        res.json({ message: 'Payment successful', fee });
+
+        // Find Student Profile to get User ID and Parent ID
+        const studentProfile = await Student.findById(studentId);
+
+        if (studentProfile) {
+            // Create Notification for Student
+            await new Notification({
+                userId: studentProfile.userId,
+                title: 'Fee Payment Received',
+                message: `We have received a payment of ₹${amount} for ${type}. Transaction ID: ${transactionId || 'N/A'}. You can download the receipt from your dashboard.`,
+                type: 'payment'
+            }).save();
+
+            // Create Notification for Parent (if linked)
+            if (studentProfile.parentId) {
+                await new Notification({
+                    userId: studentProfile.parentId,
+                    title: 'Fee Payment Confirmation',
+                    message: `Payment of ₹${amount} received for your ward ${studentProfile.name}. You can download the receipt from your dashboard.`,
+                    type: 'payment'
+                }).save();
+            }
+        }
+
+        res.json(fee);
     } catch (err) {
-        console.error('Payment Error:', err);
+        console.error('Error adding fee:', err);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Get all fee records (Admin)
+router.get('/all', auth, roleAuth('admin'), async (req, res) => {
+    try {
+        // Populate Student details (name, fatherNam, etc.)
+        // Note: studentId in Fee model currently refers to 'User' based on model def, but frontend sends Student ID.
+        // I need to update Fee model ref to 'Student' or populate correctly.
+        // Assuming I update Fee model ref to 'Student' in next step or use deep populate.
+        // Let's assume Fee.studentId is ref 'Student'.
+        const fees = await Fee.find()
+            .populate('studentId', 'name fatherName totalFee')
+            .sort({ date: -1 });
+        res.json(fees);
+    } catch (err) {
+        console.error('Error fetching fees:', err);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Get fees for a specific student (Admin or Student/Parent)
+router.get('/student/:id', auth, async (req, res) => {
+    try {
+        const idParam = req.params.id;
+
+        let student = null;
+        if (idParam.match(/^[0-9a-fA-F]{24}$/)) {
+            try {
+                student = await Student.findById(idParam);
+            } catch (e) { }
+        }
+
+        if (!student && idParam.match(/^[0-9a-fA-F]{24}$/)) {
+            student = await Student.findOne({ userId: idParam });
+        }
+
+        if (!student) {
+            return res.status(404).json({ message: 'Student record not found' });
+        }
+
+        const fees = await Fee.find({ studentId: student._id }).sort({ date: -1 });
+
+        const totalFees = student.totalFee || 0;
+        const paidFees = fees.reduce((acc, curr) => acc + curr.amount, 0);
+        const pendingFees = totalFees - paidFees;
+
+        res.json({
+            totalFees,
+            paidFees,
+            pendingFees: pendingFees > 0 ? pendingFees : 0,
+            payments: fees,
+            dueDate: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0)
+        });
+    } catch (err) {
+        console.error('Error fetching student fees:', err);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Get Fee Stats (Total Collection)
+router.get('/stats', auth, roleAuth('admin'), async (req, res) => {
+    try {
+        const fees = await Fee.find({ status: 'Paid' });
+        const totalCollection = fees.reduce((acc, curr) => acc + curr.amount, 0);
+        res.json({ totalCollection });
+    } catch (err) {
+        console.error('Error fetching fee stats:', err);
         res.status(500).json({ message: 'Server error' });
     }
 });

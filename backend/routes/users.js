@@ -300,7 +300,7 @@ router.get('/students/all', auth, roleAuth('admin'), async (req, res) => {
       .populate('classId', 'name')
       .populate('batchId', 'name')
       .populate('parentId', 'name email')
-      .select('name classId batchId userId parentId');
+      .select('name fatherName totalFee classId batchId userId parentId');
     console.log(`Found ${students.length} students`);
     res.json(students);
   } catch (err) {
@@ -367,6 +367,21 @@ router.put('/students/:userId', auth, async (req, res) => {
     res.json(updatedStudent);
   } catch (err) {
     console.error('Error updating student:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Update student total fee (admin only)
+router.put('/students/:userId/fee', auth, roleAuth('admin'), async (req, res) => {
+  try {
+    const student = await Student.findOne({ userId: req.params.userId });
+    if (!student) return res.status(404).json({ message: 'Student not found' });
+
+    student.totalFee = req.body.totalFee;
+    await student.save();
+    res.json(student);
+  } catch (err) {
+    console.error('Error updating student fee:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });

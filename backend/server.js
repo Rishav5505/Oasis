@@ -45,6 +45,8 @@ app.use('/api/fees', require('./routes/fees'));
 app.use('/api/exams', require('./routes/exams'));
 app.use('/api/notices', require('./routes/notices'));
 app.use('/api/notifications', require('./routes/notifications'));
+app.use('/api/fees', require('./routes/fees'));
+app.use('/api/attendance/teacher', require('./routes/teacherAttendance')); // New route for teacher attendance
 app.use('/api/teacher', require('./routes/teacher'));
 app.use('/api/leads', require('./routes/leads'));
 app.use('/api/public', require('./routes/public'));

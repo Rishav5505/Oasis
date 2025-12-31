@@ -3,6 +3,7 @@ import axios from 'axios';
 import { AuthContext } from '../contexts/AuthContext';
 import { FaUser, FaCalendarAlt, FaBook, FaBullhorn, FaDownload, FaMoneyBillWave, FaClipboardList, FaGraduationCap, FaEdit, FaSave, FaTimes, FaCamera, FaBell, FaChartLine, FaClock, FaStar, FaCheckCircle, FaChevronRight } from 'react-icons/fa';
 import oasisLogo from '../assets/oasis_logo.png';
+import receiptBanner from '../assets/receipt_banner.png';
 
 const StudentDashboard = () => {
   const { user } = useContext(AuthContext);
@@ -248,6 +249,52 @@ const StudentDashboard = () => {
     return deadline.toLocaleDateString();
   };
 
+  const handleDownloadReceipt = (payment) => {
+    const receiptContent = `
+        <html>
+        <head>
+            <title>Fee Receipt - ${payment.transactionId || 'N/A'}</title>
+            <style>
+                body { font-family: 'Courier New', monospace; padding: 40px; }
+                .receipt-box { border: 2px dashed #333; padding: 20px; max-width: 600px; margin: 0 auto; }
+                .header { text-align: center; margin-bottom: 20px; }
+                .details { margin-bottom: 20px; }
+                .row { display: flex; justify-content: space-between; margin-bottom: 10px; }
+                .footer { text-align: center; margin-top: 20px; font-size: 12px; }
+            </style>
+        </head>
+        <body>
+            <div className="receipt-box">
+                <div className="header">
+                    <img src="${window.location.origin}${receiptBanner}" alt="Oasis Header" style="width: 100%; max-height: 150px; object-fit: contain; margin-bottom: 20px;" />
+                    <h2>OASIS JEE CLASSES</h2>
+                    <p>Official Payment Receipt</p>
+                </div>
+                <div className="details">
+                    <div className="row"><span>Date:</span> <span>${new Date(payment.date).toLocaleDateString()}</span></div>
+                    <div className="row"><span>Receipt No:</span> <span>${payment.transactionId || payment._id.slice(-8).toUpperCase()}</span></div>
+                    <div className="row"><span>Student Name:</span> <span>${student.name || profile.name}</span></div>
+                    <div className="row"><span>Class:</span> <span>${student.classId?.name || 'N/A'}</span></div>
+                    <hr/>
+                    <div className="row"><span>Payment Type:</span> <span>${payment.type}</span></div>
+                    <div className="row"><span>Amount Paid:</span> <span>₹${payment.amount}</span></div>
+                    <div className="row"><span>Payment Mode:</span> <span>Online/Cash</span></div>
+                    <hr/>
+                    <div className="row" style="font-weight: bold; font-size: 18px;"><span>TOTAL:</span> <span>₹${payment.amount}</span></div>
+                </div>
+                <div className="footer">
+                    <p>This is a computer-generated receipt.</p>
+                    <button onclick="window.print()">PRINT RECEIPT</button>
+                </div>
+            </div>
+        </body>
+        </html>
+    `;
+    const win = window.open('', '', 'width=800,height=600');
+    win.document.write(receiptContent);
+    win.document.close();
+  };
+
   const getProfileCompletion = () => {
     const fields = [editForm.name, editForm.fatherName, editForm.motherName, editForm.dob, editForm.phone, editForm.email, editForm.admissionDate];
     const completed = fields.filter(field => field && field.trim() !== '').length;
@@ -435,24 +482,24 @@ const StudentDashboard = () => {
         </div>
 
         {/* Complete Your Profile Section */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 mb-8">
-          <div className="flex justify-between items-center mb-6">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 md:p-8 mb-8">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-6">
             <div>
               <h2 className="text-2xl font-bold text-gray-900 mb-2">Complete Your Profile</h2>
               <p className="text-gray-600">Keep your information up to date for better services</p>
             </div>
-            <div className="flex items-center space-x-4">
-              <div className="text-right">
+            <div className="flex flex-wrap items-center gap-4 md:gap-6 w-full md:w-auto mt-4 md:mt-0">
+              <div className="text-left md:text-right">
                 <div className="text-sm text-gray-500">Complete by</div>
                 <div className="font-medium text-gray-900">{getCompletionDeadline()}</div>
               </div>
-              <div className="text-right">
+              <div className="text-left md:text-right">
                 <div className="text-sm text-gray-500">Progress</div>
                 <div className="text-2xl font-bold text-blue-600">{getProfileCompletion()}%</div>
               </div>
               <button
                 onClick={handleEditToggle}
-                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center font-medium"
+                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center font-medium ml-auto md:ml-0"
               >
                 {editMode ? <FaTimes className="mr-2" /> : <FaEdit className="mr-2" />}
                 {editMode ? 'Cancel' : 'Edit Profile'}
@@ -796,7 +843,12 @@ const StudentDashboard = () => {
                     {fees.payments.slice(0, 3).map((payment, index) => (
                       <div key={index} className="flex justify-between items-center text-sm">
                         <span className="text-gray-600">{new Date(payment.date).toLocaleDateString()}</span>
-                        <span className="font-medium text-green-600">₹{payment.amount}</span>
+                        <div className="flex items-center gap-3">
+                          <span className="font-medium text-green-600">₹{payment.amount}</span>
+                          <button onClick={() => handleDownloadReceipt(payment)} className="text-xs text-blue-600 hover:underline flex items-center gap-1">
+                            <FaDownload /> Receipt
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>

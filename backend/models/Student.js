@@ -11,6 +11,7 @@ const studentSchema = new mongoose.Schema({
   batchId: { type: mongoose.Schema.Types.ObjectId, ref: 'Batch' },
   subjects: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Subject' }],
   parentId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  totalFee: { type: Number, default: 0 },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Student', studentSchema);

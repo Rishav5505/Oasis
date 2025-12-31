@@ -24,7 +24,7 @@ const Home = () => {
             🚀 Admissions Open for 2025 Batch
           </div>
 
-          <h1 className="text-5xl md:text-7xl lg:text-8xl font-extrabold text-white mb-8 tracking-tight leading-tight animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+          <h1 className="text-4xl md:text-7xl lg:text-8xl font-extrabold text-white mb-8 tracking-tight leading-tight animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
             Master <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400">JEE</span> with <br />
             <span className="relative inline-block mt-2">
               <span className="relative z-10">Excellence</span>
@@ -48,22 +48,22 @@ const Home = () => {
             </button>
           </div>
 
-          {/* Floating Stats Card */}
-          <div className="absolute bottom-0 left-0 right-0 translate-y-1/2 w-full max-w-5xl mx-auto hidden md:block animate-fade-in-up" style={{ animationDelay: '0.5s' }}>
-            <div className="grid grid-cols-4 gap-4 p-4 bg-white rounded-3xl shadow-2xl border border-gray-100">
+          {/* Floating Stats Card - Responsive adjustments */}
+          <div className="relative md:absolute bottom-0 left-0 right-0 md:translate-y-1/2 w-full max-w-5xl mx-auto mt-12 md:mt-0 animate-fade-in-up" style={{ animationDelay: '0.5s' }}>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-white rounded-3xl shadow-2xl border border-gray-100">
               {[
                 { icon: FaUserGraduate, count: "5000+", label: "Students", color: "text-blue-600", bg: "bg-blue-50" },
                 { icon: FaTrophy, count: "95%", label: "Selection Rate", color: "text-yellow-500", bg: "bg-yellow-50" },
                 { icon: FaChalkboardTeacher, count: "50+", label: "Expert Faculty", color: "text-purple-600", bg: "bg-purple-50" },
                 { icon: BiWorld, count: "10+", label: "Years Impact", color: "text-green-600", bg: "bg-green-50" },
               ].map((stat, idx) => (
-                <div key={idx} className="flex items-center justify-center gap-4 p-4 rounded-2xl hover:bg-gray-50 transition-colors cursor-default group">
-                  <div className={`w-12 h-12 rounded-xl ${stat.bg} ${stat.color} flex items-center justify-center text-2xl group-hover:scale-110 transition-transform`}>
+                <div key={idx} className="flex flex-col md:flex-row items-center justify-center gap-3 md:gap-4 p-3 md:p-4 rounded-2xl hover:bg-gray-50 transition-colors cursor-default group">
+                  <div className={`w-10 h-10 md:w-12 md:h-12 rounded-xl ${stat.bg} ${stat.color} flex items-center justify-center text-xl md:text-2xl group-hover:scale-110 transition-transform`}>
                     <stat.icon />
                   </div>
-                  <div className="text-left">
-                    <h3 className="text-2xl font-bold text-gray-900">{stat.count}</h3>
-                    <p className="text-sm text-gray-500 font-medium">{stat.label}</p>
+                  <div className="text-center md:text-left">
+                    <h3 className="text-xl md:text-2xl font-bold text-gray-900">{stat.count}</h3>
+                    <p className="text-xs md:text-sm text-gray-500 font-medium">{stat.label}</p>
                   </div>
                 </div>
               ))}
@@ -73,7 +73,7 @@ const Home = () => {
       </section>
 
       {/* Spacing for floating stats */}
-      <div className="h-32 bg-gray-50 hidden md:block"></div>
+      <div className="h-12 md:h-32 bg-gray-50"></div>
 
       {/* Features Section - Bento Grid Style */}
       <section className="py-24 bg-gray-50">

@@ -11,6 +11,7 @@ import {
     FaChevronRight, FaSignOutAlt, FaHome, FaWallet, FaGraduationCap, FaEnvelopeOpenText
 } from 'react-icons/fa';
 import oasisLogo from '../assets/oasis_logo.png';
+import receiptBanner from '../assets/receipt_banner.png';
 
 ChartJS.register(CategoryScale, LinearScale, RadialLinearScale, BarElement, LineElement, PointElement, Title, Tooltip, Legend, Filler, ArcElement);
 
@@ -27,6 +28,7 @@ const ParentDashboard = () => {
     const [notifications, setNotifications] = useState([]);
     const [showNotifications, setShowNotifications] = useState(false);
     const [activeTab, setActiveTab] = useState('Overview');
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     // Payment State
     const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -179,6 +181,52 @@ const ParentDashboard = () => {
         window.print();
     };
 
+    const handleDownloadReceipt = (payment) => {
+        const receiptContent = `
+            <html>
+            <head>
+                <title>Fee Receipt - ${payment.transactionId || 'N/A'}</title>
+                <style>
+                    body { font-family: 'Courier New', monospace; padding: 40px; }
+                    .receipt-box { border: 2px dashed #333; padding: 20px; max-width: 600px; margin: 0 auto; }
+                    .header { text-align: center; margin-bottom: 20px; }
+                    .details { margin-bottom: 20px; }
+                    .row { display: flex; justify-content: space-between; margin-bottom: 10px; }
+                    .footer { text-align: center; margin-top: 20px; font-size: 12px; }
+                </style>
+            </head>
+            <body>
+                <div className="receipt-box">
+                    <div className="header">
+                        <img src="${window.location.origin}${receiptBanner}" alt="Oasis Header" style="width: 100%; max-height: 150px; object-fit: contain; margin-bottom: 20px;" />
+                        <h2>OASIS JEE CLASSES</h2>
+                        <p>Official Payment Receipt</p>
+                    </div>
+                    <div className="details">
+                        <div className="row"><span>Date:</span> <span>${new Date(payment.date).toLocaleDateString()}</span></div>
+                        <div className="row"><span>Receipt No:</span> <span>${payment.transactionId || payment._id.slice(-8).toUpperCase()}</span></div>
+                        <div className="row"><span>Student Name:</span> <span>${currentChild?.name || 'Student'}</span></div>
+                        <div className="row"><span>Class:</span> <span>${currentChild?.classId?.name || 'N/A'}</span></div>
+                        <hr/>
+                        <div className="row"><span>Payment Type:</span> <span>${payment.type}</span></div>
+                        <div className="row"><span>Amount Paid:</span> <span>₹${payment.amount}</span></div>
+                        <div className="row"><span>Payment Mode:</span> <span>${payment.mode || 'Online'}</span></div>
+                        <hr/>
+                        <div className="row" style="font-weight: bold; font-size: 18px;"><span>TOTAL:</span> <span>₹${payment.amount}</span></div>
+                    </div>
+                    <div className="footer">
+                        <p>This is a computer-generated receipt.</p>
+                        <button onclick="window.print()">PRINT RECEIPT</button>
+                    </div>
+                </div>
+            </body>
+            </html>
+        `;
+        const win = window.open('', '', 'width=800,height=600');
+        win.document.write(receiptContent);
+        win.document.close();
+    };
+
     const markNotificationAsRead = async (id) => {
         const token = sessionStorage.getItem('token');
         const headers = { Authorization: `Bearer ${token}` };
@@ -225,7 +273,7 @@ const ParentDashboard = () => {
 
     const NavItem = ({ label, icon: Icon, active, onClick }) => (
         <button
-            onClick={onClick}
+            onClick={() => { onClick(); setIsSidebarOpen(false); }}
             className={`flex items-center gap-5 px-7 py-4.5 rounded-[1.5rem] w-full transition-all duration-500 group relative ${active ? 'bg-indigo-600 text-white shadow-[0_15px_30px_-10px_rgba(79,70,229,0.4)]' : 'text-slate-500 hover:bg-indigo-50/50 hover:text-indigo-600'}`}
         >
             {active && <div className="absolute left-0 w-1.5 h-8 bg-white rounded-r-full my-auto inset-y-0"></div>}
@@ -243,19 +291,32 @@ const ParentDashboard = () => {
             <div className="fixed top-0 right-0 w-[80vw] h-[80vh] bg-gradient-to-bl from-indigo-50/40 via-transparent to-transparent -z-10 pointer-events-none"></div>
             <div className="fixed bottom-0 left-0 w-[50vw] h-[50vh] bg-gradient-to-tr from-purple-50/30 via-transparent to-transparent -z-10 pointer-events-none"></div>
 
+            {/* Mobile Sidebar Overlay */}
+            {isSidebarOpen && (
+                <div
+                    className="fixed inset-0 bg-black/50 z-20 lg:hidden backdrop-blur-sm transition-opacity"
+                    onClick={() => setIsSidebarOpen(false)}
+                ></div>
+            )}
+
             {/* Sidebar Navigation */}
-            <aside className="w-80 bg-white border-r border-gray-100 flex flex-col p-8 fixed h-full z-30 transition-all no-print hidden lg:flex">
-                <div className="flex items-center gap-5 mb-14 px-2 group cursor-pointer">
-                    <div className="w-14 h-14 bg-white rounded-[1.5rem] flex items-center justify-center shadow-[0_10px_20px_-5px_rgba(79,70,229,0.3)] transition-all duration-500 group-hover:rotate-12 group-hover:scale-110 overflow-hidden p-2">
-                        <img src={oasisLogo} alt="Oasis Logo" className="w-full h-full object-contain" />
-                    </div>
-                    <div className="flex flex-col">
-                        <span className="text-3xl font-[900] tracking-tighter text-[#1e1b4b] leading-none mb-1">Oasis</span>
-                        <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-indigo-500">Faculty Suite</span>
-                            <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
+            <aside className={`w-80 bg-white border-r border-gray-100 flex flex-col p-8 fixed h-full z-30 transition-transform duration-300 lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} shadow-2xl lg:shadow-none overflow-y-auto`}>
+                <div className="flex items-center justify-between mb-14 px-2">
+                    <div className="flex items-center gap-5 group cursor-pointer">
+                        <div className="w-14 h-14 bg-white rounded-[1.5rem] flex items-center justify-center shadow-[0_10px_20px_-5px_rgba(79,70,229,0.3)] transition-all duration-500 group-hover:rotate-12 group-hover:scale-110 overflow-hidden p-2">
+                            <img src={oasisLogo} alt="Oasis Logo" className="w-full h-full object-contain" />
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-3xl font-[900] tracking-tighter text-[#1e1b4b] leading-none mb-1">Oasis</span>
+                            <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-black uppercase tracking-[0.4em] text-indigo-500">Faculty Suite</span>
+                                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
+                            </div>
                         </div>
                     </div>
+                    <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden p-2 text-gray-400 hover:text-gray-900">
+                        <FaTimesCircle className="text-2xl" />
+                    </button>
                 </div>
 
                 <nav className="flex-1 space-y-2">
@@ -266,7 +327,7 @@ const ParentDashboard = () => {
                     <NavItem label="Study Materials" icon={FaBook} active={activeTab === 'Materials'} onClick={() => setActiveTab('Materials')} />
                 </nav>
 
-                <div className="mt-auto space-y-4">
+                <div className="mt-auto space-y-4 pt-10">
                     <div className="bg-indigo-50 p-6 rounded-[2rem] border border-indigo-100 relative overflow-hidden group">
                         <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/10 rounded-full -mr-8 -mt-8"></div>
                         <p className="text-[10px] font-black uppercase tracking-widest text-indigo-400 mb-2">Support Hotnode</p>
@@ -284,22 +345,30 @@ const ParentDashboard = () => {
             </aside>
 
             {/* Main Content Area */}
-            <main className="flex-1 lg:ml-80 p-6 lg:p-12">
+            <main className="flex-1 lg:ml-80 p-6 lg:p-12 transition-all">
                 <div className="max-w-6xl mx-auto space-y-12">
 
                     {/* Top Navigation / Desktop Header */}
                     <header className="flex flex-col md:flex-row justify-between items-center gap-8 no-print">
-                        <div className="space-y-2 text-center md:text-left">
-                            <h1 className="text-5xl font-[900] text-[#1e1b4b] tracking-tighter leading-tight">
-                                Welcome Back, <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-indigo-800">{profile.name?.split(' ')[0]}</span>
-                            </h1>
-                            <div className="flex items-center justify-center md:justify-start gap-4">
-                                <p className="text-slate-400 font-black text-[10px] uppercase tracking-[0.3em] border-r border-slate-200 pr-4">Parental Oversight Console</p>
-                                <p className="text-indigo-400 font-black text-[10px] uppercase tracking-[0.3em]">{new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                        <div className="flex items-center gap-4 w-full md:w-auto">
+                            <button
+                                onClick={() => setIsSidebarOpen(true)}
+                                className="lg:hidden p-3 bg-white rounded-xl shadow-sm border border-gray-100 text-indigo-600"
+                            >
+                                <FaLayerGroup className="text-xl" />
+                            </button>
+                            <div className="space-y-2 text-center md:text-left flex-1">
+                                <h1 className="text-4xl md:text-5xl font-[900] text-[#1e1b4b] tracking-tighter leading-tight">
+                                    Welcome <span className="hidden md:inline">Back,</span> <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-indigo-800">{profile.name?.split(' ')[0]}</span>
+                                </h1>
+                                <div className="flex items-center justify-center md:justify-start gap-4">
+                                    <p className="text-slate-400 font-black text-[10px] uppercase tracking-[0.3em] border-r border-slate-200 pr-4">Parental Oversight Console</p>
+                                    <p className="text-indigo-400 font-black text-[10px] uppercase tracking-[0.3em]">{new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                                </div>
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-4 w-full md:w-auto justify-end">
                             <div className="relative">
                                 <button
                                     onClick={() => setShowNotifications(!showNotifications)}
@@ -563,7 +632,10 @@ const ParentDashboard = () => {
                                                     </div>
                                                     <div className="text-right">
                                                         <p className="text-3xl font-black text-[#1e1b4b] tracking-tighter">₹{p.amount}</p>
-                                                        <p className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em]">Verified</p>
+                                                        <p className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em] mb-1">Verified</p>
+                                                        <button onClick={() => handleDownloadReceipt(p)} className="text-[10px] font-bold text-indigo-600 hover:underline flex items-center justify-end gap-1 w-full">
+                                                            <FaFilePdf /> Receipt
+                                                        </button>
                                                     </div>
                                                 </div>
                                             ))}

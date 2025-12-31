@@ -20,9 +20,11 @@ import {
   FaMoneyBillWave, FaBullhorn, FaTasks, FaHistory, FaSearch,
   FaPlus, FaUserPlus, FaEnvelope, FaFilter, FaArrowUp, FaArrowDown,
   FaCheckCircle, FaExclamationTriangle, FaChartLine, FaRegClock,
-  FaCogs, FaSignOutAlt, FaChevronRight, FaFileInvoiceDollar
+  FaCogs, FaSignOutAlt, FaChevronRight, FaFileInvoiceDollar, FaTimesCircle
 } from 'react-icons/fa';
 import oasisLogo from '../assets/oasis_logo.png';
+import oasisFullLogo from '../assets/oasis_full_logo.png';
+import receiptBanner from '../assets/receipt_banner.png';
 
 ChartJS.register(
   CategoryScale,
@@ -57,6 +59,15 @@ const AdminDashboard = () => {
   const [editMode, setEditMode] = useState(false);
   const [editForm, setEditForm] = useState({ name: '', phone: '', email: '', address: '' });
   const [photoFile, setPhotoFile] = useState(null);
+  const [viewingAttendanceTeacher, setViewingAttendanceTeacher] = useState(null);
+
+  const [teacherAttendanceLogs, setTeacherAttendanceLogs] = useState([]);
+  const [fees, setFees] = useState([]);
+  const [feeForm, setFeeForm] = useState({ studentId: '', amount: '', type: 'Tuition', remarks: '' });
+  const [selectedFeeStudent, setSelectedFeeStudent] = useState(null); // Selected student for fee details
+  const [feeSearchTerm, setFeeSearchTerm] = useState('');
+  const [isEditingFee, setIsEditingFee] = useState(false);
+  const [newTotalFee, setNewTotalFee] = useState('');
 
   // Linking State
   const [parentList, setParentList] = useState([]);
@@ -70,6 +81,7 @@ const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [showNoticeModal, setShowNoticeModal] = useState(false);
   const [newNotice, setNewNotice] = useState({ title: '', content: '', targetRoles: ['student', 'parent'] });
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
     // If auth is loading, do nothing yet
@@ -87,6 +99,13 @@ const AdminDashboard = () => {
     fetchAllStudents();
     fetchMetadata();
   }, [token, user, authLoading]);
+
+  // Fetch fees when tab changes to 'fees'
+  useEffect(() => {
+    if (activeTab === 'fees') {
+      fetchFees();
+    }
+  }, [activeTab]);
 
   const fetchProfile = async () => {
     try {
@@ -137,6 +156,7 @@ const AdminDashboard = () => {
       setParentList(parentUsers);
       fetchStats(res.data);
       fetchAllStudents(); // Fetch students with full populated data
+      fetchTeacherAttendanceCount(); // Fetch teacher attendance
       setError(null);
     } catch (err) {
       console.error('Error fetching users:', err);
@@ -152,6 +172,23 @@ const AdminDashboard = () => {
       setAllStudents(res.data);
     } catch (err) {
       console.error('Error fetching all students:', err);
+    }
+  };
+
+  const fetchTeacherAttendanceCount = async () => {
+    try {
+      const token = sessionStorage.getItem('token');
+      const res = await axios.get('http://localhost:5002/api/attendance/teacher/all', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      // Filter for today's attendance
+      const today = new Date().toISOString().split('T')[0];
+      const presentCount = res.data.filter(a => a.date.split('T')[0] === today && a.status === 'present').length;
+
+      setStats(prev => ({ ...prev, presentTeachers: presentCount }));
+    } catch (err) {
+      console.error('Error fetching teacher attendance stats:', err);
     }
   };
 
@@ -176,7 +213,119 @@ const AdminDashboard = () => {
     const totalStudents = allUsers.filter(u => u.role === 'student').length;
     const totalTeachers = allUsers.filter(u => u.role === 'teacher').length;
     const totalParents = allUsers.filter(u => u.role === 'parent').length;
-    setStats({ totalStudents, totalTeachers, totalParents, presentToday: Math.floor(totalStudents * 0.8), absentToday: Math.floor(totalStudents * 0.2) });
+
+    // Fetch real fee stats
+    const tkn = sessionStorage.getItem('token');
+    axios.get('http://localhost:5002/api/fees/stats', { headers: { 'Authorization': `Bearer ${tkn}` } })
+      .then(res => {
+        setStats({
+          totalStudents,
+          totalTeachers,
+          totalParents,
+          presentToday: Math.floor(totalStudents * 0.8),
+          absentToday: Math.floor(totalStudents * 0.2),
+          totalFees: res.data.totalCollection
+        });
+      })
+      .catch(err => {
+        console.error("Fee stats error", err);
+        setStats({ totalStudents, totalTeachers, totalParents, presentToday: Math.floor(totalStudents * 0.8), absentToday: Math.floor(totalStudents * 0.2), totalFees: 0 });
+      });
+  };
+
+  const fetchFees = async () => {
+    try {
+      const token = sessionStorage.getItem('token');
+      const res = await axios.get('http://localhost:5002/api/fees/all', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      setFees(res.data);
+    } catch (err) {
+      console.error('Error fetching fees:', err);
+    }
+  };
+
+  const handleAddFee = async (e) => {
+    e.preventDefault();
+    try {
+      const token = sessionStorage.getItem('token');
+      await axios.post('http://localhost:5002/api/fees/pay', feeForm, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      alert('Payment recorded successfully!');
+      setFeeForm({ studentId: '', amount: '', type: 'Tuition', remarks: '' });
+      fetchFees();
+      // Refresh users/students to update stats if necessary (though fee stats are separate)
+      // Ideally we should also refresh the student list to get updated Paid amounts if we tracked that there, but we calculate it live.
+    } catch (err) {
+      console.error("Payment Error:", err);
+      alert('Failed to record payment: ' + (err.response?.data?.message || err.message));
+    }
+  };
+
+  const handleUpdateTotalFee = async () => {
+    try {
+      const token = sessionStorage.getItem('token');
+      // selectedFeeStudent.userId is the User ID string.
+      await axios.put(`http://localhost:5002/api/users/students/${selectedFeeStudent.userId}/fee`,
+        { totalFee: newTotalFee },
+        { headers: { 'Authorization': `Bearer ${token}` } }
+      );
+      alert('Total Fee updated!');
+      setIsEditingFee(false);
+      fetchAllStudents(); // Refresh student data to show new fee
+      // We also need to update selectedFeeStudent locally to reflect change immediately
+      setSelectedFeeStudent(prev => ({ ...prev, totalFee: newTotalFee }));
+    } catch (err) {
+      console.error("Update Fee Error:", err);
+      alert('Failed to update fee');
+    }
+  };
+
+  const handleDownloadReceipt = (payment) => {
+    const receiptContent = `
+        <html>
+        <head>
+            <title>Fee Receipt - ${payment.transactionId || 'N/A'}</title>
+            <style>
+                body { font-family: 'Courier New', monospace; padding: 40px; }
+                .receipt-box { border: 2px dashed #333; padding: 20px; max-width: 600px; margin: 0 auto; }
+                .header { text-align: center; margin-bottom: 20px; }
+                .details { margin-bottom: 20px; }
+                .row { display: flex; justify-content: space-between; margin-bottom: 10px; }
+                .footer { text-align: center; margin-top: 20px; font-size: 12px; }
+            </style>
+        </head>
+        <body>
+            <div className="receipt-box">
+                <div className="header">
+                    <img src="${window.location.origin}${receiptBanner}" alt="Oasis Header" style="width: 100%; max-height: 150px; object-fit: contain; margin-bottom: 20px;" />
+                    <h2>OASIS JEE CLASSES</h2>
+                    <p>Official Payment Receipt</p>
+                </div>
+                <div className="details">
+                    <div className="row"><span>Date:</span> <span>${new Date(payment.date).toLocaleDateString()}</span></div>
+                    <div className="row"><span>Receipt No:</span> <span>${payment.transactionId || payment._id.slice(-8).toUpperCase()}</span></div>
+                    <div className="row"><span>Student Name:</span> <span>${selectedFeeStudent?.name || 'Student'}</span></div>
+                    <div className="row"><span>Father's Name:</span> <span>${selectedFeeStudent?.fatherName || 'N/A'}</span></div>
+                    <hr/>
+                    <div className="row"><span>Payment Type:</span> <span>${payment.type}</span></div>
+                    <div className="row"><span>Amount Paid:</span> <span>₹${payment.amount}</span></div>
+                    <div className="row"><span>Payment Mode:</span> <span>${payment.remarks || 'Admin Entry'}</span></div>
+                    <hr/>
+                    <div className="row" style="font-weight: bold; font-size: 18px;"><span>TOTAL:</span> <span>₹${payment.amount}</span></div>
+                </div>
+                <div className="footer">
+                    <p>This is a computer-generated receipt.</p>
+                    <button onclick="window.print()">PRINT RECEIPT</button>
+                </div>
+            </div>
+        </body>
+        </html>
+    `;
+    const win = window.open('', '', 'width=800,height=600');
+    win.document.write(receiptContent);
+    win.document.close();
   };
 
   const handleStudentClick = async (student) => {
@@ -184,7 +333,7 @@ const AdminDashboard = () => {
     setSelectedStudent(student);
     try {
       const [attendanceRes, marksRes] = await Promise.all([
-        axios.get(`http://localhost:5002/api/attendance/user/${student._id}`),
+        axios.get(`http://localhost:5002/api/attendance/student/${student._id}`),
         axios.get(`http://localhost:5002/api/marks/student/${student._id}`)
       ]);
       console.log('Attendance:', attendanceRes.data);
@@ -230,6 +379,23 @@ const AdminDashboard = () => {
     });
     setShowAssignModal(true);
   };
+
+
+  const handleViewTeacherAttendance = async (teacher) => {
+    setViewingAttendanceTeacher(teacher);
+    try {
+      const token = sessionStorage.getItem('token');
+      const res = await axios.get('http://localhost:5002/api/attendance/teacher/all', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      // Filter in frontend for now as backend returns all
+      const logs = res.data.filter(log => log.teacherId?._id === teacher._id || log.teacherId === teacher._id);
+      setTeacherAttendanceLogs(logs);
+    } catch (err) {
+      alert('Failed to fetch attendance logs');
+    }
+  };
+
   const handleLinkParent = async (e) => {
     e.preventDefault();
     if (!linkParentId || !linkStudentId) {
@@ -346,17 +512,75 @@ const AdminDashboard = () => {
 
   // 3. Main Dashboard Render
   return (
-    <div className="flex h-screen bg-[#F8FAFC] overflow-hidden">
+    <div className="flex h-screen bg-[#F8FAFC] overflow-hidden relative">
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-20 lg:hidden backdrop-blur-sm transition-opacity"
+          onClick={() => setIsSidebarOpen(false)}
+        ></div>
+      )}
+
+      {/* Attendance History Modal */}
+      {viewingAttendanceTeacher && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center backdrop-blur-sm p-4 animate-in fade-in duration-300">
+          <div className="bg-white rounded-[2.5rem] w-full max-w-2xl max-h-[80vh] overflow-hidden shadow-2xl flex flex-col">
+            <div className="p-8 border-b border-gray-100 flex items-center justify-between bg-gray-50">
+              <div>
+                <h2 className="text-2xl font-black text-gray-900">Attendance History</h2>
+                <p className="font-bold text-gray-500 text-sm">Target: <span className="text-indigo-600">{viewingAttendanceTeacher.name}</span></p>
+              </div>
+              <button onClick={() => setViewingAttendanceTeacher(null)} className="p-2 bg-white rounded-full text-gray-400 hover:text-red-500 shadow-sm transition-colors">
+                <FaTimesCircle className="text-2xl" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-8">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">
+                    <th className="px-4 py-3">Date</th>
+                    <th className="px-4 py-3">Session/Class</th>
+                    <th className="px-4 py-3">Time</th>
+                    <th className="px-4 py-3">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {teacherAttendanceLogs.map(log => (
+                    <tr key={log._id} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 font-bold text-gray-700">{new Date(log.date).toLocaleDateString()}</td>
+                      <td className="px-4 py-3">
+                        <span className="px-2 py-1 bg-indigo-50 text-indigo-600 rounded-lg text-[10px] font-bold uppercase">
+                          {log.className || 'General'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 font-mono text-xs text-gray-500">{log.checkInTime ? new Date(log.checkInTime).toLocaleTimeString() : '-'}</td>
+                      <td className="px-4 py-3">
+                        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${log.status === 'present' ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
+                          {log.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                  {teacherAttendanceLogs.length === 0 && (
+                    <tr><td colSpan="4" className="text-center py-8 text-gray-400 font-bold">No attendance records found.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Sidebar - Pro Layout */}
-      <aside className="w-72 bg-indigo-900 text-indigo-100 flex-shrink-0 flex flex-col shadow-2xl z-20">
-        <div className="p-8 flex items-center gap-4 border-b border-indigo-800/50">
-          <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-lg overflow-hidden p-2 group-hover:rotate-0 rotate-3 transition-all">
-            <img src={oasisLogo} alt="Oasis Logo" className="w-full h-full object-contain" />
+      {/* Sidebar - Pro Layout */}
+      <aside className={`w-72 bg-gradient-to-b from-[#0f172a] via-[#1e1b4b] to-[#312e81] text-white flex-shrink-0 flex flex-col shadow-2xl z-30 fixed h-full transition-transform duration-300 lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:static`}>
+        <div className="p-6 flex items-center justify-between border-b border-indigo-800/50">
+          {/* Replaced Logo Section */}
+          <div className="w-full flex justify-center">
+            <img src={oasisFullLogo} alt="Oasis Full Logo" className="h-16 object-contain brightness-110 drop-shadow-lg" />
           </div>
-          <div>
-            <h1 className="text-2xl font-black tracking-tight text-white">Oasis</h1>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-300">Admin Panel</p>
-          </div>
+          <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden p-2 text-indigo-300 hover:text-white absolute right-4 top-6">
+            <FaTimesCircle className="text-2xl" />
+          </button>
         </div>
 
         <nav className="flex-1 p-6 space-y-2 overflow-y-auto">
@@ -364,12 +588,13 @@ const AdminDashboard = () => {
             { id: 'overview', icon: FaChartLine, label: 'Overview' },
             { id: 'students', icon: FaUserGraduate, label: 'Students' },
             { id: 'teachers', icon: FaChalkboardTeacher, label: 'Teachers' },
+            { id: 'fees', icon: FaMoneyBillWave, label: 'Fees Management' },
             { id: 'communication', icon: FaBullhorn, label: 'Notice Center' },
             { id: 'profile', icon: FaCogs, label: 'Profile Settings' },
           ].map(item => (
             <button
               key={item.id}
-              onClick={() => setActiveTab(item.id)}
+              onClick={() => { setActiveTab(item.id); setIsSidebarOpen(false); }}
               className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all font-semibold text-sm ${activeTab === item.id
                 ? 'bg-indigo-500 text-white shadow-indigo-900/50 shadow-lg translate-x-1'
                 : 'hover:bg-indigo-800/50 hover:text-white'
@@ -401,18 +626,28 @@ const AdminDashboard = () => {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col overflow-hidden">
+      <main className="flex-1 flex flex-col overflow-hidden w-full">
         {/* Header bar */}
-        <header className="h-20 bg-white border-b border-gray-100 flex items-center justify-between px-10 shadow-sm z-10">
+        <header className="h-20 bg-white border-b border-gray-100 flex items-center justify-between px-6 lg:px-10 shadow-sm z-10 w-full">
           <div className="flex items-center gap-6 flex-1 max-w-2xl text-gray-400">
-            <FaSearch className="text-gray-300" />
-            <input
-              type="text"
-              placeholder="Universal Search (Command + K)"
-              className="w-full bg-transparent focus:outline-none text-gray-600 font-medium placeholder-gray-300"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+            <div className="flex items-center gap-4 w-full">
+              <button
+                onClick={() => setIsSidebarOpen(true)}
+                className="lg:hidden p-2 bg-gray-50 rounded-xl text-indigo-600"
+              >
+                <FaTasks className="text-xl" />
+              </button>
+              <div className="flex items-center gap-2 w-full">
+                <FaSearch className="text-gray-300" />
+                <input
+                  type="text"
+                  placeholder="Search Universe..."
+                  className="w-full bg-transparent focus:outline-none text-gray-600 font-medium placeholder-gray-300 text-sm"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+            </div>
           </div>
           <div className="flex items-center gap-8">
             <div className="flex items-center gap-4 px-5 py-2.5 bg-gray-50 rounded-2xl border border-dotted border-gray-200 cursor-pointer hover:bg-white transition-all">
@@ -431,23 +666,53 @@ const AdminDashboard = () => {
         <div className="flex-1 overflow-y-auto p-10 space-y-10 scroll-smooth">
           {activeTab === 'overview' && (
             <>
+              {/* Vibrant Welcome Banner */}
+              <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-r from-violet-600 via-indigo-600 to-purple-600 p-10 shadow-2xl shadow-indigo-200/50 mb-10 text-white relative">
+                <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 bg-white/10 blur-3xl rounded-full pointer-events-none"></div>
+                <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-60 h-60 bg-pink-500/20 blur-3xl rounded-full pointer-events-none"></div>
+
+                <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                  <div>
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-white/10">Admin Console</span>
+                      <span className="text-indigo-200 text-xs font-bold">{new Date().toDateString()}</span>
+                    </div>
+                    <h1 className="text-4xl md:text-5xl font-[900] tracking-tight mb-2 leading-tight">
+                      Namaste, <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-200 to-indigo-100">{profile.name?.split(' ')[0] || 'Admin'}</span> 👋
+                    </h1>
+                    <p className="text-indigo-100 font-medium max-w-lg text-sm leading-relaxed opacity-90">
+                      You have <span className="font-black text-white underline decoration-pink-400 decoration-2 underline-offset-4">{stats.totalStudents || 0} active students</span> and <span className="font-black text-white">{stats.presentToday || 0}</span> students present today.
+                      <br />
+                      <span className="font-black text-emerald-300">{stats.presentTeachers || 0} Teachers</span> have checked in.
+                    </p>
+                  </div>
+                  <div className="flex gap-4">
+                    <button onClick={() => setActiveTab('communication')} className="bg-white text-indigo-600 px-6 py-3 rounded-2xl font-black text-xs shadow-lg hover:bg-indigo-50 transition-all flex items-center gap-2 group">
+                      <FaBullhorn className="group-hover:rotate-12 transition-transform" /> POST UPDATE
+                    </button>
+                    <button onClick={() => alert('System report downloading...')} className="bg-indigo-800/40 text-white border border-white/20 px-6 py-3 rounded-2xl font-black text-xs hover:bg-indigo-800/60 transition-all backdrop-blur-md">
+                      VIEW REPORTS
+                    </button>
+                  </div>
+                </div>
+              </div>
               {/* Quick Actions Grid */}
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-6">
                 {[
-                  { label: 'Add Student', icon: FaUserPlus, color: 'bg-emerald-500', action: () => setActiveTab('students') },
-                  { label: 'New Teacher', icon: FaPlus, color: 'bg-indigo-600', action: () => setActiveTab('teachers') },
-                  { label: 'Broadcast', icon: FaBullhorn, color: 'bg-orange-500', action: () => setActiveTab('communication') },
-                  { label: 'Fee Report', icon: FaFileInvoiceDollar, color: 'bg-purple-600', action: () => alert('Generating report...') },
+                  { label: 'Add Student', icon: FaUserPlus, color: 'bg-emerald-500', bg: 'hover:bg-emerald-50', border: 'hover:border-emerald-200', action: () => setActiveTab('students') },
+                  { label: 'New Teacher', icon: FaPlus, color: 'bg-indigo-600', bg: 'hover:bg-indigo-50', border: 'hover:border-indigo-200', action: () => setActiveTab('teachers') },
+                  { label: 'Broadcast', icon: FaBullhorn, color: 'bg-orange-500', bg: 'hover:bg-orange-50', border: 'hover:border-orange-200', action: () => setActiveTab('communication') },
+                  { label: 'Fee Report', icon: FaFileInvoiceDollar, color: 'bg-purple-600', bg: 'hover:bg-purple-50', border: 'hover:border-purple-200', action: () => setActiveTab('fees') },
                 ].map((act, i) => (
                   <button
                     key={i}
                     onClick={act.action}
-                    className="group flex flex-col items-center justify-center p-8 bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-2xl hover:shadow-indigo-100 hover:-translate-y-2 transition-all border-dashed hover:border-solid hover:border-indigo-100"
+                    className={`group flex flex-col items-center justify-center p-8 bg-white rounded-[2rem] border border-gray-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] hover:shadow-xl hover:-translate-y-1 transition-all duration-300 ${act.bg} ${act.border}`}
                   >
-                    <div className={`${act.color} w-16 h-16 rounded-[2rem] flex items-center justify-center text-white text-2xl mb-4 group-hover:scale-110 rotate-3 group-hover:rotate-0 transition-all`}>
+                    <div className={`${act.color} w-16 h-16 rounded-[1.5rem] flex items-center justify-center text-white text-2xl mb-4 shadow-lg group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300`}>
                       <act.icon />
                     </div>
-                    <span className="font-bold text-gray-700 text-sm">{act.label}</span>
+                    <span className="font-bold text-gray-700 text-sm group-hover:text-gray-900">{act.label}</span>
                   </button>
                 ))}
               </div>
@@ -455,28 +720,29 @@ const AdminDashboard = () => {
               {/* Stats & Clickable Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {[
-                  { label: 'Live Students', value: stats.totalStudents, trend: '+12%', icon: FaUserGraduate, color: 'indigo', action: () => setActiveTab('students') },
-                  { label: 'Teachers', value: stats.totalTeachers, trend: '+2%', icon: FaChalkboardTeacher, color: 'emerald', action: () => setActiveTab('teachers') },
-                  { label: 'Today Presence', value: `${stats.presentToday}/${stats.totalStudents}`, trend: 'Good', icon: FaCalendarCheck, color: 'orange' },
-                  { label: 'Fees Collection', value: '₹4.2L', trend: '-5%', icon: FaMoneyBillWave, color: 'rose' },
+                  { label: 'Live Students', value: stats.totalStudents, trend: '+12%', icon: FaUserGraduate, color: 'indigo', gradient: 'from-indigo-500 to-blue-500', action: () => setActiveTab('students') },
+                  { label: 'Teachers Present', value: `${stats.presentTeachers || 0}/${stats.totalTeachers || 0}`, trend: 'Live', icon: FaChalkboardTeacher, color: 'emerald', gradient: 'from-emerald-500 to-teal-500', action: () => setActiveTab('teachers') },
+                  { label: 'Student Presence', value: `${stats.presentToday}/${stats.totalStudents}`, trend: 'Good', icon: FaCalendarCheck, color: 'orange', gradient: 'from-orange-500 to-amber-500', action: null },
+                  { label: 'Fees Collection', value: `₹${(stats.totalFees || 0).toLocaleString()}`, trend: 'Live', icon: FaMoneyBillWave, color: 'rose', gradient: 'from-rose-500 to-pink-500', action: () => setActiveTab('fees') },
                 ].map((stat, i) => (
                   <div
                     key={i}
                     onClick={stat.action}
-                    className="p-8 bg-white rounded-[2.5rem] border border-gray-100 shadow-sm cursor-pointer hover:shadow-xl transition-all hover:bg-indigo-50/20 group relative overflow-hidden"
+                    className={`p-8 bg-white rounded-[2.5rem] border border-gray-100 shadow-[0_8px_30px_-8px_rgba(0,0,0,0.06)] transition-all duration-300 group relative overflow-hidden ${stat.action ? 'cursor-pointer hover:-translate-y-1 hover:shadow-xl' : ''}`}
                   >
-                    <div className={`absolute top-0 right-0 w-32 h-32 bg-${stat.color}-500/5 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-all duration-700`}></div>
-                    <div className="flex items-center justify-between mb-6 relative">
-                      <div className={`w-14 h-14 bg-${stat.color}-50 rounded-2xl flex items-center justify-center text-${stat.color}-500 text-xl`}>
+                    <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${stat.gradient} opacity-10 rounded-full -mr-12 -mt-12 group-hover:scale-150 transition-transform duration-700 ease-out`}></div>
+
+                    <div className="flex items-center justify-between mb-8 relative">
+                      <div className={`w-14 h-14 bg-${stat.color}-50 rounded-2xl flex items-center justify-center text-${stat.color}-600 text-xl shadow-inner`}>
                         <stat.icon />
                       </div>
-                      <span className={`text-${stat.trend.startsWith('+') ? 'emerald' : stat.trend === 'Good' ? 'indigo' : 'rose'}-500 text-[10px] font-black bg-gray-50 px-3 py-1.5 rounded-full`}>
+                      <span className={`text-${stat.trend.startsWith('+') ? 'emerald' : stat.trend === 'Good' ? 'indigo' : 'rose'}-600 text-[10px] font-black bg-${stat.trend.startsWith('+') ? 'emerald' : stat.trend === 'Good' ? 'indigo' : 'rose'}-50 px-3 py-1.5 rounded-full border border-${stat.trend.startsWith('+') ? 'emerald' : stat.trend === 'Good' ? 'indigo' : 'rose'}-100`}>
                         {stat.trend.startsWith('+') ? <FaArrowUp className="inline mr-1" /> : stat.trend.startsWith('-') ? <FaArrowDown className="inline mr-1" /> : <FaCheckCircle className="inline mr-1" />}
                         {stat.trend}
                       </span>
                     </div>
-                    <h3 className="text-3xl font-black text-gray-900 mb-1 relative tracking-tighter">{stat.value}</h3>
-                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest relative">{stat.label}</p>
+                    <h3 className="text-4xl font-[900] text-slate-800 mb-2 relative tracking-tight">{stat.value}</h3>
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest relative">{stat.label}</p>
                   </div>
                 ))}
               </div>
@@ -764,6 +1030,270 @@ const AdminDashboard = () => {
             </div>
           )}
 
+          {activeTab === 'fees' && (
+            <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
+              {/* Header & Search */}
+              <div className="flex flex-col md:flex-row justify-between items-center gap-6 bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
+                <div>
+                  <h2 className="text-3xl font-[900] text-gray-900 mb-2 flex items-center gap-3">
+                    <span className="p-3 bg-rose-100 text-rose-600 rounded-2xl"><FaMoneyBillWave /></span>
+                    Fees Management
+                  </h2>
+                  <p className="text-gray-500 font-medium">Search for a student to manage fees & view history.</p>
+                </div>
+                <div className="relative w-full md:w-96">
+                  <FaSearch className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search Student by Name..."
+                    className="w-full pl-12 pr-6 py-4 bg-gray-50 rounded-2xl font-bold text-gray-700 outline-none focus:ring-2 focus:ring-rose-200 transition-all"
+                    value={feeSearchTerm}
+                    onChange={e => {
+                      setFeeSearchTerm(e.target.value);
+                      setSelectedFeeStudent(null); // Reset selection on search
+                    }}
+                  />
+                  {feeSearchTerm && !selectedFeeStudent && (
+                    <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-gray-100 max-h-60 overflow-y-auto z-20 p-2">
+                      {allStudents.filter(s => s.name.toLowerCase().includes(feeSearchTerm.toLowerCase())).map(s => (
+                        <div
+                          key={s._id}
+                          onClick={() => {
+                            setSelectedFeeStudent(s);
+                            setFeeForm(prev => ({ ...prev, studentId: s._id }));
+                            setFeeSearchTerm(s.name);
+                          }}
+                          className="p-3 hover:bg-rose-50 rounded-xl cursor-pointer transition-colors flex items-center justify-between group"
+                        >
+                          <div>
+                            <p className="font-bold text-gray-800">{s.name}</p>
+                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">{s.classId?.name || 'Class N/A'} • {s.fatherName ? `S/O ${s.fatherName}` : 'Father: N/A'}</p>
+                          </div>
+                          <FaChevronRight className="text-gray-300 group-hover:text-rose-500" />
+                        </div>
+                      ))}
+                      {allStudents.filter(s => s.name.toLowerCase().includes(feeSearchTerm.toLowerCase())).length === 0 && (
+                        <div className="p-4 text-center text-gray-400 font-bold text-xs">No students found</div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {selectedFeeStudent ? (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                  {/* Left: Student Payment Profile */}
+                  <div className="space-y-6">
+                    <div className="bg-gradient-to-br from-indigo-900 to-slate-900 p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden">
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -mr-10 -mt-10"></div>
+                      <div className="relative z-10">
+                        <div className="flex items-center gap-4 mb-6">
+                          <div className="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center text-2xl font-black">
+                            {selectedFeeStudent.name.charAt(0)}
+                          </div>
+                          <div>
+                            <h3 className="text-xl font-bold">{selectedFeeStudent.name}</h3>
+                            <p className="text-indigo-200 text-sm font-medium">{selectedFeeStudent.email || 'No Email'}</p>
+                          </div>
+                        </div>
+                        <div className="space-y-4 bg-white/5 p-6 rounded-2xl border border-white/10">
+                          <div className="flex justify-between items-center">
+                            <span className="text-indigo-200 text-xs font-bold uppercase">Class</span>
+                            <span className="font-bold">{selectedFeeStudent.classId?.name || 'N/A'}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-indigo-200 text-xs font-bold uppercase">Father's Name</span>
+                            <span className="font-bold">{selectedFeeStudent.fatherName || 'Not Recorded'}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-indigo-200 text-xs font-bold uppercase">Admission Date</span>
+                            <span className="font-bold">{new Date().toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Financial Summary */}
+                    <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
+                      <h4 className="text-gray-900 font-black text-lg mb-6">Fee Status</h4>
+                      <div className="space-y-6">
+                        {/* Note: In a real app, 'totalFee' would come from backend. Currently defaulting 0 or fetching if available */}
+                        {(() => {
+                          const studentFees = fees.filter(f => f.studentId?._id === selectedFeeStudent._id || f.studentId === selectedFeeStudent._id);
+                          const totalPaid = studentFees.reduce((acc, curr) => acc + curr.amount, 0);
+                          const totalFee = selectedFeeStudent.totalFee || 50000; // Default or fetched
+                          const due = totalFee - totalPaid;
+
+                          return (
+                            <>
+                              <div className="flex items-center justify-between p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
+                                <span className="text-emerald-800 font-bold text-sm">Total Paid</span>
+                                <span className="text-2xl font-[900] text-emerald-600">₹{totalPaid.toLocaleString()}</span>
+                              </div>
+                              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                                <span className="text-gray-500 font-bold text-sm">Total Fee</span>
+                                <div className="flex items-center gap-2">
+                                  {isEditingFee ? (
+                                    <div className="flex items-center gap-2">
+                                      <input
+                                        type="number"
+                                        className="w-24 p-1 rounded-lg border border-gray-300 text-sm font-bold"
+                                        value={newTotalFee}
+                                        onChange={(e) => setNewTotalFee(e.target.value)}
+                                      />
+                                      <button onClick={handleUpdateTotalFee} className="p-1 text-emerald-600 bg-emerald-100 rounded hover:bg-emerald-200"><FaCheckCircle /></button>
+                                      <button onClick={() => setIsEditingFee(false)} className="p-1 text-rose-600 bg-rose-100 rounded hover:bg-rose-200"><FaTimesCircle /></button>
+                                    </div>
+                                  ) : (
+                                    <>
+                                      <span className="text-xl font-bold text-gray-700">₹{totalFee.toLocaleString()}</span>
+                                      <button
+                                        onClick={() => {
+                                          setNewTotalFee(totalFee);
+                                          setIsEditingFee(true);
+                                        }}
+                                        className="text-gray-400 hover:text-indigo-600 transition-colors"
+                                      >
+                                        <FaCogs />
+                                      </button>
+                                    </>
+                                  )}
+                                </div>
+                              </div >
+                              <div className="flex items-center justify-between p-4 bg-rose-50 rounded-2xl border border-rose-100">
+                                <span className="text-rose-800 font-bold text-sm">Due Amount</span>
+                                <span className="text-xl font-black text-rose-600">₹{due > 0 ? due.toLocaleString() : 0}</span>
+                              </div>
+                            </>
+                          )
+                        })()}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Middle & Right: Payment & History */}
+                  <div className="lg:col-span-2 space-y-8">
+                    {/* Payment Form */}
+                    <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
+                      <h3 className="text-xl font-black text-gray-900 mb-6 flex items-center gap-2"><FaPlus className="text-indigo-500" /> Collect New Payment</h3>
+                      <form onSubmit={handleAddFee} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <label className="text-xs font-black uppercase text-gray-400 tracking-widest mb-2 block">Amount (₹)</label>
+                          <input
+                            type="number"
+                            className="w-full p-4 bg-gray-50 rounded-xl font-bold text-gray-700 outline-none focus:ring-2 focus:ring-rose-200"
+                            placeholder="Enter Amount"
+                            value={feeForm.amount}
+                            onChange={e => setFeeForm({ ...feeForm, amount: e.target.value })}
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs font-black uppercase text-gray-400 tracking-widest mb-2 block">Payment Type</label>
+                          <select
+                            className="w-full p-4 bg-gray-50 rounded-xl font-bold text-gray-700 outline-none focus:ring-2 focus:ring-rose-200"
+                            value={feeForm.type}
+                            onChange={e => setFeeForm({ ...feeForm, type: e.target.value })}
+                          >
+                            <option value="Tuition">Tuition Fee</option>
+                            <option value="Exam">Exam Fee</option>
+                            <option value="Registration">Registration Fee</option>
+                            <option value="Other">Other</option>
+                          </select>
+                        </div>
+                        <div className="md:col-span-2">
+                          <label className="text-xs font-black uppercase text-gray-400 tracking-widest mb-2 block">Remarks / Receipt Note</label>
+                          <input
+                            type="text"
+                            className="w-full p-4 bg-gray-50 rounded-xl font-bold text-gray-700 outline-none focus:ring-2 focus:ring-rose-200"
+                            placeholder="e.g. Paid via UPI, Transaction ID..."
+                            value={feeForm.remarks}
+                            onChange={e => setFeeForm({ ...feeForm, remarks: e.target.value })}
+                          />
+                        </div>
+                        <button type="submit" className="md:col-span-2 py-4 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-black shadow-lg shadow-rose-200 transition-all flex items-center justify-center gap-2">
+                          <FaCheckCircle /> CONFIRM & SEND RECEIPT
+                        </button>
+                      </form>
+                    </div>
+
+                    {/* Student Transaction History */}
+                    <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
+                      <h3 className="text-xl font-black text-gray-900 mb-6">Payment History</h3>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left">
+                          <thead>
+                            <tr className="text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">
+                              <th className="px-4 py-3">Date</th>
+                              <th className="px-4 py-3">Type</th>
+                              <th className="px-4 py-3">Amount</th>
+                              <th className="px-4 py-3">Receipt</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-50">
+                            {fees.filter(f => f.studentId?._id === selectedFeeStudent._id || f.studentId === selectedFeeStudent._id).length > 0 ? (
+                              fees.filter(f => f.studentId?._id === selectedFeeStudent._id || f.studentId === selectedFeeStudent._id).map(fee => (
+                                <tr key={fee._id} className="hover:bg-gray-50">
+                                  <td className="px-4 py-3 font-bold text-gray-600">{new Date(fee.date).toLocaleDateString()}</td>
+                                  <td className="px-4 py-3 text-xs font-bold text-indigo-600 bg-indigo-50 rounded-lg px-2 w-fit">{fee.type}</td>
+                                  <td className="px-4 py-3 font-black text-gray-800">₹{fee.amount.toLocaleString()}</td>
+                                  <td className="px-4 py-3">
+                                    <button onClick={() => handleDownloadReceipt(fee)} className="text-xs font-bold text-rose-500 hover:underline">View Receipt</button>
+                                  </td>
+                                </tr>
+                              ))
+                            ) : (
+                              <tr><td colSpan="4" className="text-center py-8 text-gray-400 font-bold">No payment history found for this student.</td></tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                // No Student Selected - Show Recent Global Transactions
+                <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
+                  <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-xl font-black text-gray-900">Recent Global Transactions</h3>
+                    <button onClick={fetchFees} className="text-gray-400 hover:text-rose-500"><FaHistory /></button>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                      <thead>
+                        <tr className="text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">
+                          <th className="px-4 py-3">Date</th>
+                          <th className="px-4 py-3">Student</th>
+                          <th className="px-4 py-3">Type</th>
+                          <th className="px-4 py-3">Amount</th>
+                          <th className="px-4 py-3">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50">
+                        {fees.length > 0 ? fees.slice(0, 10).map(fee => (
+                          <tr key={fee._id} className="hover:bg-gray-50">
+                            <td className="px-4 py-3 font-bold text-gray-600">{new Date(fee.date).toLocaleDateString()}</td>
+                            <td className="px-4 py-3">
+                              <p className="font-bold text-gray-900">{fee.studentId?.name || 'Unknown'}</p>
+                              <p className="text-[10px] text-gray-400">{fee.studentId?.fatherName ? `F: ${fee.studentId.fatherName}` : ''}</p>
+                            </td>
+                            <td className="px-4 py-3 text-xs font-bold text-gray-500">{fee.type}</td>
+                            <td className="px-4 py-3 font-black text-gray-800">₹{fee.amount}</td>
+                            <td className="px-4 py-3">
+                              <span className="px-2 py-1 bg-emerald-100 text-emerald-600 rounded-lg text-[10px] font-black uppercase">PAID</span>
+                            </td>
+                          </tr>
+                        )) : (
+                          <tr><td colSpan="5" className="text-center py-10 text-gray-400 font-bold">No transactions found.</td></tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {activeTab === 'teachers' && (
             <div className="space-y-10 animate-in fade-in duration-500">
               <div className="flex flex-col md:flex-row items-center justify-between gap-6">
@@ -867,36 +1397,52 @@ const AdminDashboard = () => {
                   </thead>
                   <tbody className="divide-y divide-gray-50">
                     {users.filter(u => u.role === 'teacher').map(teacher => (
-                      <tr key={teacher._id} className="group hover:bg-indigo-50/30 transition-all">
+                      <tr key={teacher._id} className="group hover:bg-gray-50 transition-all">
                         <td className="px-8 py-6">
                           <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-emerald-100 rounded-2xl flex items-center justify-center text-emerald-600 font-black text-lg">
-                              {teacher.name.charAt(0)}
+                            <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600 font-bold text-xl shadow-sm">
+                              {(teacher.name || '?').charAt(0)}
                             </div>
                             <div>
-                              <p className="font-bold text-gray-900 text-sm group-hover:text-indigo-600 transition-colors">{teacher.name}</p>
+                              <p className="font-bold text-gray-900 group-hover:text-indigo-600 transition-colors">{teacher.name}</p>
                               <p className="text-xs text-gray-400 font-medium">{teacher.email}</p>
                             </div>
                           </div>
                         </td>
-                        <td className="px-8 py-6 space-x-2">
-                          {teacher.subjects?.split(',').map((s, i) => (
-                            <span key={i} className="text-[10px] font-black text-indigo-500 bg-indigo-50 px-2.5 py-1 rounded-lg uppercase">{s.trim()}</span>
-                          )) || <span className="text-[10px] font-black text-gray-300">N/A</span>}
+                        <td className="px-8 py-6">
+                          <div className="flex flex-wrap gap-2">
+                            {(teacher.subjects ? teacher.subjects.split(',') : []).map((sub, i) => (
+                              <span key={i} className="px-3 py-1 bg-gray-100 text-gray-500 rounded-lg text-[10px] font-black uppercase">{sub}</span>
+                            ))}
+                            {(!teacher.subjects) && <span className="text-[10px] text-gray-300 italic">None</span>}
+                          </div>
                         </td>
                         <td className="px-8 py-6">
-                          <span className="flex items-center gap-2 text-xs font-black text-emerald-500">
-                            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div> ACTIVE
-                          </span>
+                          <span className="px-4 py-1.5 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-black uppercase border border-emerald-100">Active</span>
                         </td>
                         <td className="px-8 py-6 text-right">
-                          <button onClick={() => openAssignModal(teacher)} className="text-gray-300 hover:text-indigo-600 transition-colors">
-                            <FaCogs className="text-xl ml-auto" />
-                          </button>
+                          <div className="flex justify-end gap-3">
+                            <button
+                              onClick={() => handleViewTeacherAttendance(teacher)}
+                              className="p-3 bg-gray-50 text-indigo-500 hover:bg-indigo-50 hover:text-indigo-600 rounded-xl transition-all font-bold text-xs flex items-center gap-2 group/btn"
+                              title="View Attendance History"
+                            >
+                              <FaHistory /> <span className="hidden group-hover/btn:inline">History</span>
+                            </button>
+                            <button
+                              onClick={() => openAssignModal(teacher)}
+                              className="p-3 bg-gray-50 text-gray-400 hover:bg-indigo-50 hover:text-indigo-600 rounded-xl transition-all"
+                              title="Edit Assignments"
+                            >
+                              <FaCogs />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
                   </tbody>
+
+
                 </table>
               </div>
             </div>
@@ -1011,88 +1557,90 @@ const AdminDashboard = () => {
             </div>
           )}
         </div>
-      </main>
+      </main >
       {/* Task: Teacher Module Activation - Assignment Modal */}
-      {showAssignModal && editingTeacher && (
-        <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-6 animate-in fade-in duration-300">
-          <div className="bg-white rounded-[3rem] w-full max-w-lg overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
-            <div className="p-8 bg-indigo-600 text-white flex justify-between items-center">
-              <div>
-                <h3 className="text-xl font-black">Manage Assignments</h3>
-                <p className="text-indigo-100 text-[10px] font-bold uppercase tracking-widest">{editingTeacher.name}</p>
+      {
+        showAssignModal && editingTeacher && (
+          <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-6 animate-in fade-in duration-300">
+            <div className="bg-white rounded-[3rem] w-full max-w-lg overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
+              <div className="p-8 bg-indigo-600 text-white flex justify-between items-center">
+                <div>
+                  <h3 className="text-xl font-black">Manage Assignments</h3>
+                  <p className="text-indigo-100 text-[10px] font-bold uppercase tracking-widest">{editingTeacher.name}</p>
+                </div>
+                <button onClick={() => setShowAssignModal(false)} className="w-10 h-10 bg-white/10 hover:bg-white/20 rounded-xl flex items-center justify-center transition-all">
+                  <FaSignOutAlt className="rotate-180" />
+                </button>
               </div>
-              <button onClick={() => setShowAssignModal(false)} className="w-10 h-10 bg-white/10 hover:bg-white/20 rounded-xl flex items-center justify-center transition-all">
-                <FaSignOutAlt className="rotate-180" />
-              </button>
+              <form onSubmit={handleUpdateTeacherAssignments} className="p-10 space-y-8">
+                <div className="space-y-4">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-4">Assign Subjects</label>
+                  <div className="flex flex-wrap gap-2 p-4 bg-gray-50 rounded-2xl">
+                    {availableSubjects.map(sub => (
+                      <label key={sub._id} className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl cursor-pointer border border-transparent hover:border-indigo-100 transition-all">
+                        <input
+                          type="checkbox"
+                          className="w-4 h-4 rounded text-indigo-600 focus:ring-0"
+                          checked={assignForm.subjects.split(',').filter(x => x).map(x => x.trim()).includes(sub.name)}
+                          onChange={(e) => {
+                            const current = assignForm.subjects.split(',').filter(x => x && x.trim()).map(x => x.trim());
+                            if (e.target.checked) {
+                              setAssignForm({ ...assignForm, subjects: [...current, sub.name].join(', ') });
+                            } else {
+                              setAssignForm({ ...assignForm, subjects: current.filter(x => x !== sub.name).join(', ') });
+                            }
+                          }}
+                        />
+                        <span className="text-xs font-bold text-gray-600">{sub.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-4">Assign Classes</label>
+                  <div className="flex flex-wrap gap-2 p-4 bg-gray-50 rounded-2xl">
+                    {availableClasses.map(cls => (
+                      <label key={cls._id} className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl cursor-pointer border border-transparent hover:border-indigo-100 transition-all">
+                        <input
+                          type="checkbox"
+                          className="w-4 h-4 rounded text-indigo-600 focus:ring-0"
+                          checked={assignForm.classes.split(',').filter(x => x).map(x => x.trim()).includes(cls.name)}
+                          onChange={(e) => {
+                            const current = assignForm.classes.split(',').filter(x => x && x.trim()).map(x => x.trim());
+                            if (e.target.checked) {
+                              setAssignForm({ ...assignForm, classes: [...current, cls.name].join(', ') });
+                            } else {
+                              setAssignForm({ ...assignForm, classes: current.filter(x => x !== cls.name).join(', ') });
+                            }
+                          }}
+                        />
+                        <span className="text-xs font-bold text-gray-600">{cls.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-4">Batches</label>
+                  <input
+                    type="text"
+                    value={assignForm.batches}
+                    onChange={(e) => setAssignForm({ ...assignForm, batches: e.target.value })}
+                    className="w-full p-4 bg-gray-50 border-none rounded-2xl font-bold text-gray-700"
+                    placeholder="Morning, Evening"
+                  />
+                </div>
+
+                <button type="submit" className="w-full py-5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-sm shadow-xl shadow-indigo-100 transition-all transform hover:-translate-y-1">
+                  UPDATE ASSIGNMENTS
+                </button>
+              </form>
             </div>
-            <form onSubmit={handleUpdateTeacherAssignments} className="p-10 space-y-8">
-              <div className="space-y-4">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-4">Assign Subjects</label>
-                <div className="flex flex-wrap gap-2 p-4 bg-gray-50 rounded-2xl">
-                  {availableSubjects.map(sub => (
-                    <label key={sub._id} className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl cursor-pointer border border-transparent hover:border-indigo-100 transition-all">
-                      <input
-                        type="checkbox"
-                        className="w-4 h-4 rounded text-indigo-600 focus:ring-0"
-                        checked={assignForm.subjects.split(',').filter(x => x).map(x => x.trim()).includes(sub.name)}
-                        onChange={(e) => {
-                          const current = assignForm.subjects.split(',').filter(x => x && x.trim()).map(x => x.trim());
-                          if (e.target.checked) {
-                            setAssignForm({ ...assignForm, subjects: [...current, sub.name].join(', ') });
-                          } else {
-                            setAssignForm({ ...assignForm, subjects: current.filter(x => x !== sub.name).join(', ') });
-                          }
-                        }}
-                      />
-                      <span className="text-xs font-bold text-gray-600">{sub.name}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-4">Assign Classes</label>
-                <div className="flex flex-wrap gap-2 p-4 bg-gray-50 rounded-2xl">
-                  {availableClasses.map(cls => (
-                    <label key={cls._id} className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl cursor-pointer border border-transparent hover:border-indigo-100 transition-all">
-                      <input
-                        type="checkbox"
-                        className="w-4 h-4 rounded text-indigo-600 focus:ring-0"
-                        checked={assignForm.classes.split(',').filter(x => x).map(x => x.trim()).includes(cls.name)}
-                        onChange={(e) => {
-                          const current = assignForm.classes.split(',').filter(x => x && x.trim()).map(x => x.trim());
-                          if (e.target.checked) {
-                            setAssignForm({ ...assignForm, classes: [...current, cls.name].join(', ') });
-                          } else {
-                            setAssignForm({ ...assignForm, classes: current.filter(x => x !== cls.name).join(', ') });
-                          }
-                        }}
-                      />
-                      <span className="text-xs font-bold text-gray-600">{cls.name}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-4">Batches</label>
-                <input
-                  type="text"
-                  value={assignForm.batches}
-                  onChange={(e) => setAssignForm({ ...assignForm, batches: e.target.value })}
-                  className="w-full p-4 bg-gray-50 border-none rounded-2xl font-bold text-gray-700"
-                  placeholder="Morning, Evening"
-                />
-              </div>
-
-              <button type="submit" className="w-full py-5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-sm shadow-xl shadow-indigo-100 transition-all transform hover:-translate-y-1">
-                UPDATE ASSIGNMENTS
-              </button>
-            </form>
           </div>
-        </div>
-      )}
-    </div>
+        )
+      }
+    </div >
   );
 };
 

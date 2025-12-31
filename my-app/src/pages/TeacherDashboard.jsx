@@ -5,9 +5,10 @@ import {
   FaChalkboardTeacher, FaUsers, FaCalendarCheck, FaBook,
   FaFilePdf, FaChartLine, FaHistory, FaSearch, FaPlus,
   FaChevronRight, FaSignOutAlt, FaRegClock, FaCheckCircle,
-  FaTimesCircle, FaFileUpload, FaUserGraduate, FaClipboardList
+  FaTimesCircle, FaFileUpload, FaUserGraduate, FaClipboardList, FaUserClock, FaBullhorn
 } from 'react-icons/fa';
 import oasisLogo from '../assets/oasis_logo.png';
+import oasisFullLogo from '../assets/oasis_full_logo.png';
 
 const TeacherDashboard = () => {
   const { user } = useContext(AuthContext);
@@ -30,6 +31,9 @@ const TeacherDashboard = () => {
   const [attendanceData, setAttendanceData] = useState({}); // { studentId: status }
   const [attendanceDate, setAttendanceDate] = useState(new Date().toISOString().split('T')[0]);
   const [attendanceSubject, setAttendanceSubject] = useState('');
+  const [todayAttendance, setTodayAttendance] = useState([]); // Array of today's check-ins
+  const [selectedCheckInClass, setSelectedCheckInClass] = useState(''); // Selected class for check-in
+  const [myAttendanceHistory, setMyAttendanceHistory] = useState([]); // Attendance history
 
   // Marks State
   const [marksClass, setMarksClass] = useState('');
@@ -40,11 +44,17 @@ const TeacherDashboard = () => {
 
   // Material State
   const [materialForm, setMaterialForm] = useState({ title: '', subjectId: '', file: null });
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [notices, setNotices] = useState([]);
 
   useEffect(() => {
     if (user?.id) {
       fetchTeacherProfile();
       fetchExams();
+      fetchTeacherProfile();
+      fetchExams();
+      fetchMyAttendanceStatus();
+      fetchNotices();
 
       const token = sessionStorage.getItem('token');
       if (token) {
@@ -85,6 +95,57 @@ const TeacherDashboard = () => {
       setExams(res.data);
     } catch (err) {
       console.error('Error fetching exams:', err);
+    }
+  };
+
+  const fetchNotices = async () => {
+    const token = sessionStorage.getItem('token');
+    if (!token) return;
+    const headers = { 'Authorization': `Bearer ${token}` };
+    try {
+      const res = await axios.get('http://localhost:5002/api/notices', { headers });
+      setNotices(res.data);
+    } catch (err) {
+      console.error('Error fetching notices:', err);
+    }
+  };
+
+  const fetchMyAttendanceStatus = async () => {
+    const token = sessionStorage.getItem('token');
+    if (!token) return;
+    try {
+      const res = await axios.get('http://localhost:5002/api/attendance/teacher/today', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      // res.data.data is now an array
+      setTodayAttendance(res.data.data || []);
+
+      // Fetch history
+      const historyRes = await axios.get('http://localhost:5002/api/attendance/teacher/me', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      setMyAttendanceHistory(historyRes.data);
+    } catch (err) {
+      console.error('Error fetching my attendance:', err);
+    }
+  };
+
+  const handleTeacherCheckIn = async () => {
+    if (!selectedCheckInClass) {
+      alert("Please select a class/session to check in.");
+      return;
+    }
+    const token = sessionStorage.getItem('token');
+    try {
+      await axios.post('http://localhost:5002/api/attendance/teacher/mark',
+        { className: selectedCheckInClass },
+        { headers: { 'Authorization': `Bearer ${token}` } }
+      );
+      alert(`Checked in for ${selectedCheckInClass}!`);
+      fetchMyAttendanceStatus(); // Refresh status
+      setSelectedCheckInClass(''); // Reset selection
+    } catch (err) {
+      alert('Failed to check in: ' + (err.response?.data?.message || 'Server error'));
     }
   };
 
@@ -175,17 +236,24 @@ const TeacherDashboard = () => {
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-gray-50 text-indigo-600 font-bold">Loading Teacher Portal...</div>;
 
   return (
-    <div className="flex h-screen bg-[#F8FAFC] overflow-hidden">
+    <div className="flex h-screen bg-[#F8FAFC] overflow-hidden relative">
+      {/* Mobile Sidebar Overlay */}
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-20 lg:hidden backdrop-blur-sm transition-opacity"
+          onClick={() => setIsSidebarOpen(false)}
+        ></div>
+      )}
+
       {/* Sidebar */}
-      <aside className="w-72 bg-emerald-900 text-emerald-100 flex-shrink-0 flex flex-col shadow-2xl z-20">
-        <div className="p-8 flex items-center gap-4 border-b border-emerald-800/50">
-          <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-lg overflow-hidden p-2">
-            <img src={oasisLogo} alt="Oasis Logo" className="w-full h-full object-contain" />
+      <aside className={`w-72 bg-gradient-to-b from-teal-900 via-emerald-900 to-green-900 text-emerald-100 flex-shrink-0 flex flex-col shadow-2xl z-30 fixed h-full transition-transform duration-300 lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:static`}>
+        <div className="p-6 flex items-center justify-between border-b border-emerald-800/50">
+          <div className="w-full flex justify-center">
+            <img src={oasisFullLogo} alt="Oasis Full Logo" className="h-16 object-contain brightness-110 drop-shadow-lg" />
           </div>
-          <div>
-            <h1 className="text-2xl font-black tracking-tight text-white">Oasis</h1>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-300">Faculty Suite</p>
-          </div>
+          <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden p-2 text-emerald-300 hover:text-white absolute right-4 top-6">
+            <FaTimesCircle className="text-2xl" />
+          </button>
         </div>
 
         <nav className="flex-1 p-6 space-y-2 overflow-y-auto">
@@ -194,11 +262,13 @@ const TeacherDashboard = () => {
             { id: 'attendance', icon: FaCalendarCheck, label: 'Attendance' },
             { id: 'marks', icon: FaClipboardList, label: 'Academic Performance' },
             { id: 'materials', icon: FaBook, label: 'Study Resources' },
+            { id: 'my-attendance', icon: FaUserClock, label: 'My Attendance' },
+            { id: 'notices', icon: FaBullhorn, label: 'Notice Board' },
             { id: 'profile', icon: FaUserGraduate, label: 'My Profile' },
           ].map(item => (
             <button
               key={item.id}
-              onClick={() => setActiveTab(item.id)}
+              onClick={() => { setActiveTab(item.id); setIsSidebarOpen(false); }}
               className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all font-semibold text-sm ${activeTab === item.id
                 ? 'bg-emerald-500 text-white shadow-emerald-900/50 shadow-lg translate-x-1'
                 : 'hover:bg-emerald-800/50 hover:text-white'
@@ -222,10 +292,16 @@ const TeacherDashboard = () => {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col overflow-hidden">
+      <main className="flex-1 flex flex-col overflow-hidden w-full">
         {/* Header */}
-        <header className="h-20 bg-white border-b border-gray-100 flex items-center justify-between px-10 shadow-sm z-10">
-          <div className="flex items-center gap-6 flex-1 max-w-2xl">
+        <header className="h-20 bg-white border-b border-gray-100 flex items-center justify-between px-6 lg:px-10 shadow-sm z-10 w-full">
+          <div className="flex items-center gap-4 flex-1 max-w-2xl">
+            <button
+              onClick={() => setIsSidebarOpen(true)}
+              className="lg:hidden p-2 bg-gray-50 rounded-xl text-emerald-600"
+            >
+              <FaClipboardList className="text-xl" />
+            </button>
             <h2 className="text-xl font-black text-gray-900 capitalize">{activeTab}</h2>
           </div>
           <div className="flex items-center gap-6">
@@ -245,27 +321,74 @@ const TeacherDashboard = () => {
         <div className="flex-1 overflow-y-auto p-10 space-y-10">
           {activeTab === 'overview' && (
             <div className="space-y-10 animate-in fade-in duration-500">
+
+              {/* Teacher Welcome Banner */}
+              <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 p-10 shadow-2xl shadow-emerald-200/50 text-white relative">
+                <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 bg-white/10 blur-3xl rounded-full pointer-events-none"></div>
+                <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-60 h-60 bg-teal-900/10 blur-3xl rounded-full pointer-events-none"></div>
+
+                <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                  <div>
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-white/10">Faculty Portal</span>
+                      <span className="text-emerald-50 text-xs font-bold">{new Date().toDateString()}</span>
+                    </div>
+                    <h1 className="text-4xl md:text-5xl font-[900] tracking-tight mb-2 leading-tight">
+                      Welcome Back, <br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-100 to-white">{profile.name?.split(' ')[0] || 'Educator'}</span> 👨‍🏫
+                    </h1>
+                    <p className="text-emerald-50 font-medium max-w-lg text-sm leading-relaxed opacity-90">
+                      You are managing <span className="font-black text-white underline decoration-emerald-200 decoration-2 underline-offset-4">{teacherData.batches.length || 0} batches</span> and impacting students with your expertise.
+                    </p>
+                  </div>
+                  <div className="flex gap-4">
+                    {/* Simplified Quick Access - full implementation in My Attendance tab */}
+                    <button onClick={() => setActiveTab('my-attendance')} className="bg-white text-teal-600 px-6 py-3 rounded-2xl font-black text-xs shadow-lg hover:bg-emerald-50 transition-all flex items-center gap-2 group animate-pulse">
+                      <FaUserClock className="group-hover:rotate-12 transition-transform" />
+                      {todayAttendance.length > 0 ? `${todayAttendance.length} SESSIONS DONE` : 'START DAY CHECK-IN'}
+                    </button>
+
+                    <button onClick={() => setActiveTab('attendance')} className="bg-teal-900/40 text-white border border-white/20 px-6 py-3 rounded-2xl font-black text-xs hover:bg-teal-900/60 transition-all backdrop-blur-md flex items-center gap-2">
+                      <FaCalendarCheck /> MARK STUDENT ATTENDANCE
+                    </button>
+                  </div>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div className="p-8 bg-white rounded-[2.5rem] border border-gray-100 shadow-sm">
-                  <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-500 text-xl mb-6">
-                    <FaUsers />
+                <div className="p-8 bg-white rounded-[2.5rem] border border-gray-100 shadow-[0_8px_30px_-8px_rgba(0,0,0,0.06)] hover:shadow-xl transition-all duration-300 group relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full -mr-12 -mt-12 group-hover:scale-150 transition-transform duration-700 ease-out"></div>
+                  <div className="flex items-center justify-between mb-8 relative">
+                    <div className="w-16 h-16 bg-emerald-50 rounded-[1.5rem] flex items-center justify-center text-emerald-600 text-2xl shadow-inner group-hover:scale-110 transition-transform">
+                      <FaUsers />
+                    </div>
+                    <span className="text-emerald-600 text-[10px] font-black bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-100">ACTIVE</span>
                   </div>
-                  <h3 className="text-3xl font-black text-gray-900 mb-1">{teacherData.batches.length || 0}</h3>
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Active Batches</p>
+                  <h3 className="text-4xl font-[900] text-gray-800 mb-2 relative tracking-tight">{teacherData.batches.length || 0}</h3>
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-widest relative">Active Batches</p>
                 </div>
-                <div className="p-8 bg-white rounded-[2.5rem] border border-gray-100 shadow-sm">
-                  <div className="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-500 text-xl mb-6">
-                    <FaBook />
+
+                <div className="p-8 bg-white rounded-[2.5rem] border border-gray-100 shadow-[0_8px_30px_-8px_rgba(0,0,0,0.06)] hover:shadow-xl transition-all duration-300 group relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full -mr-12 -mt-12 group-hover:scale-150 transition-transform duration-700 ease-out"></div>
+                  <div className="flex items-center justify-between mb-8 relative">
+                    <div className="w-16 h-16 bg-indigo-50 rounded-[1.5rem] flex items-center justify-center text-indigo-600 text-2xl shadow-inner group-hover:scale-110 transition-transform">
+                      <FaBook />
+                    </div>
+                    <span className="text-indigo-600 text-[10px] font-black bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-100">EXPERTISE</span>
                   </div>
-                  <h3 className="text-3xl font-black text-gray-900 mb-1">{teacherData.subjects.length || 0}</h3>
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Assigned Expertise</p>
+                  <h3 className="text-4xl font-[900] text-gray-800 mb-2 relative tracking-tight">{teacherData.subjects.length || 0}</h3>
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-widest relative">Assigned Subjects</p>
                 </div>
-                <div className="p-8 bg-white rounded-[2.5rem] border border-gray-100 shadow-sm">
-                  <div className="w-14 h-14 bg-orange-50 rounded-2xl flex items-center justify-center text-orange-500 text-xl mb-6">
-                    <FaRegClock />
+
+                <div className="p-8 bg-white rounded-[2.5rem] border border-gray-100 shadow-[0_8px_30px_-8px_rgba(0,0,0,0.06)] hover:shadow-xl transition-all duration-300 group relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/10 rounded-full -mr-12 -mt-12 group-hover:scale-150 transition-transform duration-700 ease-out"></div>
+                  <div className="flex items-center justify-between mb-8 relative">
+                    <div className="w-16 h-16 bg-orange-50 rounded-[1.5rem] flex items-center justify-center text-orange-500 text-2xl shadow-inner group-hover:scale-110 transition-transform">
+                      <FaRegClock />
+                    </div>
+                    <span className="text-orange-600 text-[10px] font-black bg-orange-50 px-3 py-1.5 rounded-full border border-orange-100">STATUS</span>
                   </div>
-                  <h3 className="text-3xl font-black text-gray-900 mb-1">Active</h3>
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Teaching Status</p>
+                  <h3 className="text-4xl font-[900] text-gray-800 mb-2 relative tracking-tight">Active</h3>
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-widest relative">System Access</p>
                 </div>
               </div>
 
@@ -336,7 +459,7 @@ const TeacherDashboard = () => {
                 <button
                   onClick={handleMarkAttendance}
                   disabled={!selectedClass}
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-4 rounded-2xl font-black text-sm shadow-xl shadow-emerald-100 transition-all disabled:opacity-50"
+                  className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white py-5 rounded-2xl font-black text-sm shadow-xl shadow-emerald-200/50 transition-all disabled:opacity-50 hover:scale-[1.01]"
                 >
                   FINALIZE AND SAVE ATTENDANCE
                 </button>
@@ -556,6 +679,159 @@ const TeacherDashboard = () => {
                   </div>
                   <button type="submit" className="w-full py-5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black text-sm shadow-2xl shadow-emerald-100 transition-all">DELEGATE TO COMMUNITY</button>
                 </form>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'my-attendance' && (
+            <div className="max-w-4xl mx-auto space-y-10 animate-in fade-in duration-500">
+              <div className="bg-gradient-to-br from-emerald-600 to-teal-800 rounded-[3rem] p-12 text-white shadow-2xl relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16"></div>
+                <div className="absolute bottom-0 left-0 w-48 h-48 bg-emerald-400/20 rounded-full blur-3xl -ml-16 -mb-16"></div>
+
+                <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-10">
+                  <div className="text-center md:text-left">
+                    <h2 className="text-4xl font-[900] mb-2">My Attendance Portal</h2>
+                    <p className="text-emerald-100 font-medium opacity-90">Manage your daily check-ins and track work history</p>
+                    <div className="mt-8 flex items-center gap-4 bg-white/20 backdrop-blur-md px-6 py-3 rounded-2xl w-fit mx-auto md:mx-0">
+                      <FaRegClock className="text-emerald-200" />
+                      <span className="font-bold font-mono text-xl">{new Date().toLocaleTimeString()}</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-white/10 backdrop-blur-md p-8 rounded-[2.5rem] border border-white/20 flex flex-col items-center gap-6 min-w-[280px]">
+                    <div className="w-20 h-20 rounded-full bg-white flex items-center justify-center text-4xl shadow-lg">
+                      {todayAttendance.length > 0 ? <FaCheckCircle className="text-emerald-500" /> : <FaUserClock className="text-teal-600" />}
+                    </div>
+                    <div className="w-full">
+                      <h3 className="text-2xl font-[900] text-center mb-1">Session Check-In</h3>
+                      <p className="text-emerald-100 text-xs font-bold text-center uppercase tracking-widest mb-4">
+                        {todayAttendance.length} Sessions Marked Today
+                      </p>
+                      <select
+                        className="w-full p-3 rounded-xl bg-white/20 border border-white/30 text-white placeholder-emerald-200 focus:outline-none focus:bg-white/30 font-bold mb-3 option:text-black"
+                        value={selectedCheckInClass}
+                        onChange={(e) => setSelectedCheckInClass(e.target.value)}
+                      >
+                        <option value="" className="text-gray-800">Select Class...</option>
+                        {teacherData.classes && teacherData.classes.length > 0 ?
+                          teacherData.classes.map((cls, idx) => (
+                            <option key={idx} value={cls.name} className="text-gray-800">{cls.name}</option>
+                          )) : (
+                            ['Class 9', 'Class 10', 'Class 11', 'Class 12'].map(c => (
+                              <option key={c} value={c} className="text-gray-800">{c}</option>
+                            ))
+                          )
+                        }
+                        <option value="Extra Class" className="text-gray-800">Extra Class</option>
+                      </select>
+
+                      <button onClick={handleTeacherCheckIn} className="w-full py-4 bg-white text-emerald-800 rounded-xl font-black text-sm hover:scale-105 transition-transform shadow-xl disabled:opacity-50 disabled:cursor-not-allowed" disabled={!selectedCheckInClass}>
+                        PUNCH IN
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Today's Log */}
+              <div className="grid grid-cols-1 gap-6">
+                {todayAttendance.length > 0 && (
+                  <div className="bg-emerald-50 rounded-[2rem] p-8 border border-emerald-100">
+                    <h4 className="text-lg font-black text-emerald-800 mb-4 flex items-center gap-2"><FaUserClock /> Today's Sessions</h4>
+                    <div className="flex flex-wrap gap-4">
+                      {todayAttendance.map((log) => (
+                        <div key={log._id} className="bg-white px-6 py-4 rounded-xl shadow-sm border border-emerald-100 flex items-center gap-4">
+                          <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600 font-bold">
+                            {log.className?.charAt(0) || 'C'}
+                          </div>
+                          <div>
+                            <p className="font-bold text-gray-800">{log.className || 'General Session'}</p>
+                            <p className="text-xs text-gray-400 font-mono">{new Date(log.checkInTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="bg-white rounded-[3rem] p-10 border border-gray-100 shadow-sm">
+                <h3 className="text-2xl font-black text-gray-900 mb-8 flex items-center gap-3">
+                  <FaHistory className="text-emerald-500" /> Attendance Log
+                </h3>
+                <div className="overflow-hidden">
+                  <table className="w-full text-left">
+                    <thead>
+                      <tr className="text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-100">
+                        <th className="px-6 py-4">Date</th>
+                        <th className="px-6 py-4">Session/Class</th>
+                        <th className="px-6 py-4">Check-In Time</th>
+                        <th className="px-6 py-4">Remarks</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {myAttendanceHistory.map(record => (
+                        <tr key={record._id} className="hover:bg-gray-50 transition-colors">
+                          <td className="px-6 py-4 font-bold text-gray-700">{new Date(record.date).toLocaleDateString()}</td>
+                          <td className="px-6 py-4">
+                            <span className="px-3 py-1 bg-emerald-100 text-emerald-600 rounded-full text-[10px] font-black uppercase">
+                              {record.className || 'General'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 font-mono text-xs text-gray-500">
+                            {record.checkInTime ? new Date(record.checkInTime).toLocaleTimeString() : '-'}
+                          </td>
+                          <td className="px-6 py-4 text-xs font-medium text-gray-400">
+                            {record.remarks || '-'}
+                          </td>
+                        </tr>
+                      ))}
+                      {myAttendanceHistory.length === 0 && (
+                        <tr>
+                          <td colSpan="4" className="text-center py-8 text-gray-400 font-bold">No records found</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'notices' && (
+            <div className="max-w-4xl mx-auto space-y-10 animate-in fade-in duration-500">
+              <div className="bg-gradient-to-r from-orange-500 to-rose-500 rounded-[2.5rem] p-10 text-white shadow-2xl relative overflow-hidden">
+                <div className="relative z-10">
+                  <h2 className="text-4xl font-[900] mb-2 flex items-center gap-3"><FaBullhorn /> Notice Board</h2>
+                  <p className="text-orange-100 font-medium opacity-90">Stay updated with latest announcements from administration</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-6">
+                {notices.length === 0 ? (
+                  <div className="text-center py-20 bg-white rounded-[3rem] shadow-sm border border-gray-100">
+                    <div className="text-gray-200 text-6xl mb-4"><FaBullhorn className="mx-auto" /></div>
+                    <p className="text-gray-400 font-bold text-lg">No New Notices</p>
+                  </div>
+                ) : (
+                  notices.map(notice => (
+                    <div key={notice._id} className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-xl transition-shadow relative overflow-hidden group">
+                      <div className="absolute top-0 left-0 w-2 h-full bg-gradient-to-b from-orange-400 to-rose-500"></div>
+                      <div className="flex justify-between items-start mb-4">
+                        <h3 className="text-xl font-black text-gray-800 group-hover:text-orange-600 transition-colors">{notice.title}</h3>
+                        <span className="text-[10px] font-black uppercase tracking-widest bg-gray-100 text-gray-500 px-3 py-1 rounded-full">
+                          {new Date(notice.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <p className="text-gray-600 font-medium leading-relaxed">{notice.content}</p>
+                      <div className="mt-6 flex items-center gap-2">
+                        <span className="text-[10px] font-bold text-gray-400 uppercase">From:</span>
+                        <span className="text-xs font-black text-indigo-600 bg-indigo-50 px-2 py-1 rounded-lg">ADMINISTRATION</span>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           )}
