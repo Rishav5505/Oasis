@@ -1,43 +1,95 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { AuthContext } from '../contexts/AuthContext';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import oasisLogo from '../assets/oasis_logo.png';
 
 const Login = () => {
+  const [searchParams] = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [role, setRole] = useState(searchParams.get('role') || 'student');
   const [forgotEmail, setForgotEmail] = useState('');
   const [showForgot, setShowForgot] = useState(false);
+
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const queryRole = searchParams.get('role');
+    if (queryRole) setRole(queryRole);
+  }, [searchParams]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await login(email, password);
+      // We pass the role to the login function in case the backend wants to verify it
+      await login(email, password, role);
       navigate('/dashboard');
     } catch (err) {
-      alert('Login failed');
+      alert('Login failed: ' + (err.response?.data?.message || 'Invalid credentials'));
     }
   };
 
-  const handleForgot = async (e) => {
-    e.preventDefault();
-    await axios.post('http://localhost:5002/api/auth/forgot-password', { email: forgotEmail });
-    alert('Reset email sent');
-    setShowForgot(false);
-  };
+  const roles = [
+    { id: 'student', label: 'Student', emoji: '👨‍🎓', color: 'blue' },
+    { id: 'teacher', label: 'Teacher', emoji: '👨‍🏫', color: 'green' },
+    { id: 'parent', label: 'Parent', emoji: '👨‍👩‍👦', color: 'purple' },
+    { id: 'admin', label: 'Admin', emoji: '⚙️', color: 'red' }
+  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-400 via-purple-500 to-pink-500 flex items-center justify-center p-4">
-      <div className="bg-white bg-opacity-90 backdrop-blur-lg rounded-3xl shadow-2xl p-8 w-full max-w-md transform hover:scale-105 transition-transform duration-300">
-        <div className="text-center mb-8">
-          <div className="w-20 h-20 bg-white rounded-full mx-auto mb-4 flex items-center justify-center shadow-lg overflow-hidden p-2">
+      <div className="bg-white bg-opacity-90 backdrop-blur-lg rounded-3xl shadow-2xl p-8 w-full max-w-md transform transition-all duration-300 relative">
+        <Link
+          to="/"
+          className="absolute top-6 left-6 text-gray-400 hover:text-blue-500 transition-colors flex items-center gap-1 text-sm font-semibold group"
+        >
+          <span className="group-hover:-translate-x-1 transition-transform">←</span> Back
+        </Link>
+        <div className="text-center mb-6">
+          <div className="w-16 h-16 bg-white rounded-full mx-auto mb-4 flex items-center justify-center shadow-lg overflow-hidden p-1 border-2 border-blue-100">
             <img src={oasisLogo} alt="Oasis Logo" className="w-full h-full object-contain" />
           </div>
-          <h2 className="text-3xl font-bold text-gray-800 mb-2">Welcome Back</h2>
-          <p className="text-gray-600">Sign in to your Oasis Jee Classes account</p>
+          <h2 className="text-2xl font-bold text-gray-800 mb-1">Portal Login</h2>
+
+          <div className="flex justify-center gap-4 mb-4 mt-4">
+            {roles.map((r) => {
+              const isActive = role === r.id;
+              const activeStyles = {
+                blue: 'bg-blue-100 border-blue-500 shadow-blue-200 text-blue-700',
+                green: 'bg-green-100 border-green-500 shadow-green-200 text-green-700',
+                purple: 'bg-purple-100 border-purple-500 shadow-purple-200 text-purple-700',
+                red: 'bg-red-100 border-red-500 shadow-red-200 text-red-700'
+              };
+
+              return (
+                <button
+                  key={r.id}
+                  type="button"
+                  onClick={() => setRole(r.id)}
+                  className={`flex flex-col items-center group transition-all duration-200 ${isActive ? 'scale-110' : 'opacity-50 grayscale hover:opacity-100 hover:grayscale-0'}`}
+                >
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center text-xl shadow-md border-2 transition-all ${isActive ? activeStyles[r.color] : 'bg-gray-50 border-gray-200 text-gray-400'
+                    }`}>
+                    {r.emoji}
+                  </div>
+                  <span className={`text-[10px] font-bold mt-1.5 uppercase tracking-tighter ${isActive ? activeStyles[r.color].split(' ').pop() : 'text-gray-400'
+                    }`}>
+                    {r.label}
+                  </span>
+                  {isActive && (
+                    <div className={`w-1.5 h-1.5 rounded-full mt-1 animate-pulse ${r.color === 'blue' ? 'bg-blue-500' :
+                      r.color === 'green' ? 'bg-green-500' :
+                        r.color === 'purple' ? 'bg-purple-500' : 'bg-red-500'
+                      }`}></div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          <p className="text-gray-500 text-sm">Sign in to your <span className="font-bold capitalize text-gray-700">{role}</span> account</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">

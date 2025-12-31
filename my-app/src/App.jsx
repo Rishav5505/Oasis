@@ -22,22 +22,24 @@ const ProtectedRoute = ({ children }) => {
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/courses" element={<Courses />} />
-          <Route path="/faculty" element={<Faculty />} />
-          <Route path="/results" element={<Results />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="/gallery" element={<Gallery />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-          <Route path="*" element={<Navigate to="/" />} />
-        </Routes>
-      </Router>
+      <div className="overflow-x-hidden w-full min-h-screen">
+        <Router>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/courses" element={<Courses />} />
+            <Route path="/faculty" element={<Faculty />} />
+            <Route path="/results" element={<Results />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/gallery" element={<Gallery />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="*" element={<Navigate to="/" />} />
+          </Routes>
+        </Router>
+      </div>
     </AuthProvider>
   );
 }

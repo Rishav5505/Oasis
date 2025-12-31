@@ -160,9 +160,12 @@ const Faculty = () => {
                 <p className="text-indigo-100 text-lg mb-10 leading-relaxed relative z-10">
                   Become a part of the most successful JEE community in Patna. Our doors are always open for dedicated students who dream big.
                 </p>
-                <button className="px-8 py-4 bg-white text-indigo-900 font-extrabold rounded-2xl hover:bg-indigo-50 transition-all duration-300 shadow-xl relative z-10">
+                <a
+                  href="/#demo-form"
+                  className="inline-block px-8 py-4 bg-white text-indigo-900 font-extrabold rounded-2xl hover:bg-indigo-50 transition-all duration-300 shadow-xl relative z-10"
+                >
                   Book a Counselor Session
-                </button>
+                </a>
               </div>
               {/* Decorative element */}
               <div className="absolute -bottom-6 -right-6 w-32 h-32 bg-indigo-500 rounded-full blur-[80px] opacity-20"></div>

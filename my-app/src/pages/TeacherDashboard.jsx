@@ -5,7 +5,7 @@ import {
   FaChalkboardTeacher, FaUsers, FaCalendarCheck, FaBook,
   FaFilePdf, FaChartLine, FaHistory, FaSearch, FaPlus,
   FaChevronRight, FaSignOutAlt, FaRegClock, FaCheckCircle,
-  FaTimesCircle, FaFileUpload, FaUserGraduate, FaClipboardList, FaUserClock, FaBullhorn
+  FaTimesCircle, FaFileUpload, FaUserGraduate, FaClipboardList, FaUserClock, FaBullhorn, FaTimes
 } from 'react-icons/fa';
 import oasisLogo from '../assets/oasis_logo.png';
 import oasisFullLogo from '../assets/oasis_full_logo.png';
@@ -46,6 +46,7 @@ const TeacherDashboard = () => {
   const [materialForm, setMaterialForm] = useState({ title: '', subjectId: '', file: null });
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [notices, setNotices] = useState([]);
+  const [selectedNotice, setSelectedNotice] = useState(null);
 
   useEffect(() => {
     if (user?.id) {
@@ -245,8 +246,8 @@ const TeacherDashboard = () => {
         ></div>
       )}
 
-      {/* Sidebar */}
-      <aside className={`w-72 bg-gradient-to-b from-teal-900 via-emerald-900 to-green-900 text-emerald-100 flex-shrink-0 flex flex-col shadow-2xl z-30 fixed h-full transition-transform duration-300 lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:static`}>
+      {/* Sidebar - Hidden on mobile by default, toggled via state */}
+      <aside className={`w-72 bg-gradient-to-b from-teal-900 via-emerald-900 to-green-900 text-emerald-100 flex-shrink-0 flex flex-col shadow-2xl z-30 fixed inset-y-0 left-0 transform transition-transform duration-300 lg:translate-x-0 lg:static ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="p-6 flex items-center justify-between border-b border-emerald-800/50">
           <div className="w-full flex justify-center">
             <img src={oasisFullLogo} alt="Oasis Full Logo" className="h-16 object-contain brightness-110 drop-shadow-lg" />
@@ -292,13 +293,13 @@ const TeacherDashboard = () => {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col overflow-hidden w-full">
+      <main className="flex-1 flex flex-col overflow-hidden w-full relative">
         {/* Header */}
-        <header className="h-20 bg-white border-b border-gray-100 flex items-center justify-between px-6 lg:px-10 shadow-sm z-10 w-full">
+        <header className="h-16 md:h-20 bg-white border-b border-gray-100 flex items-center justify-between px-4 md:px-10 shadow-sm z-10 w-full">
           <div className="flex items-center gap-4 flex-1 max-w-2xl">
             <button
               onClick={() => setIsSidebarOpen(true)}
-              className="lg:hidden p-2 bg-gray-50 rounded-xl text-emerald-600"
+              className="lg:hidden p-2 bg-gray-50 rounded-xl text-emerald-600 hover:bg-emerald-50 transition-colors"
             >
               <FaClipboardList className="text-xl" />
             </button>
@@ -318,7 +319,7 @@ const TeacherDashboard = () => {
         </header>
 
         {/* Dynamic Area */}
-        <div className="flex-1 overflow-y-auto p-10 space-y-10">
+        <div className="flex-1 overflow-y-auto p-4 md:p-10 space-y-6 md:space-y-10 pb-24 md:pb-10">
           {activeTab === 'overview' && (
             <div className="space-y-10 animate-in fade-in duration-500">
 
@@ -423,9 +424,9 @@ const TeacherDashboard = () => {
                     <h2 className="text-3xl font-black text-gray-900 leading-tight">Mark Attendance</h2>
                     <p className="text-gray-400 font-bold">Recording student footprints for today</p>
                   </div>
-                  <div className="flex gap-4">
+                  <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
                     <select
-                      className="px-6 py-3.5 bg-gray-50 rounded-2xl border-none font-bold text-sm text-gray-600 focus:outline-none"
+                      className="w-full md:w-auto px-6 py-3.5 bg-gray-50 rounded-2xl border-none font-bold text-sm text-gray-600 focus:outline-none"
                       value={selectedClass}
                       onChange={(e) => {
                         setSelectedClass(e.target.value);
@@ -438,7 +439,7 @@ const TeacherDashboard = () => {
                       ))}
                     </select>
                     <select
-                      className="px-6 py-3.5 bg-gray-50 rounded-2xl border-none font-bold text-sm text-gray-600 focus:outline-none"
+                      className="w-full md:w-auto px-6 py-3.5 bg-gray-50 rounded-2xl border-none font-bold text-sm text-gray-600 focus:outline-none"
                       value={attendanceSubject}
                       onChange={(e) => setAttendanceSubject(e.target.value)}
                     >
@@ -449,7 +450,7 @@ const TeacherDashboard = () => {
                     </select>
                     <input
                       type="date"
-                      className="px-6 py-3.5 bg-gray-50 rounded-2xl border-none font-bold text-sm text-gray-600 focus:outline-none"
+                      className="w-full md:w-auto px-6 py-3.5 bg-gray-50 rounded-2xl border-none font-bold text-sm text-gray-600 focus:outline-none"
                       value={attendanceDate}
                       onChange={(e) => setAttendanceDate(e.target.value)}
                     />
@@ -466,8 +467,8 @@ const TeacherDashboard = () => {
               </div>
 
               {selectedClass && (
-                <div className="bg-white rounded-[3rem] border border-gray-100 shadow-xl overflow-hidden p-2">
-                  <table className="w-full text-left">
+                <div className="bg-white rounded-[2rem] md:rounded-[3rem] border border-gray-100 shadow-xl overflow-hidden p-2 md:p-4 overflow-x-auto">
+                  <table className="w-full text-left min-w-[600px] md:min-w-0">
                     <thead>
                       <tr className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
                         <th className="px-8 py-6">Student Identity</th>
@@ -816,22 +817,82 @@ const TeacherDashboard = () => {
                   </div>
                 ) : (
                   notices.map(notice => (
-                    <div key={notice._id} className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-xl transition-shadow relative overflow-hidden group">
-                      <div className="absolute top-0 left-0 w-2 h-full bg-gradient-to-b from-orange-400 to-rose-500"></div>
+                    <div
+                      key={notice._id}
+                      onClick={() => setSelectedNotice(notice)}
+                      className="bg-white p-6 md:p-8 rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-xl transition-all cursor-pointer relative overflow-hidden group"
+                    >
+                      <div className="absolute top-0 left-0 w-2 h-full bg-gradient-to-b from-orange-400 to-rose-500 group-hover:w-3 transition-all"></div>
                       <div className="flex justify-between items-start mb-4">
-                        <h3 className="text-xl font-black text-gray-800 group-hover:text-orange-600 transition-colors">{notice.title}</h3>
-                        <span className="text-[10px] font-black uppercase tracking-widest bg-gray-100 text-gray-500 px-3 py-1 rounded-full">
+                        <div className="flex-1">
+                          <h3 className="text-xl font-black text-gray-800 group-hover:text-orange-600 transition-colors mb-2">{notice.title}</h3>
+                          <p className="text-sm text-gray-500 line-clamp-2 md:w-3/4">{notice.content || 'Click to view details...'}</p>
+                        </div>
+                        <span className="text-[10px] font-black uppercase tracking-widest bg-gray-100 text-gray-500 px-3 py-1 rounded-full whitespace-nowrap ml-4">
                           {new Date(notice.createdAt).toLocaleDateString()}
                         </span>
                       </div>
-                      <p className="text-gray-600 font-medium leading-relaxed">{notice.content}</p>
-                      <div className="mt-6 flex items-center gap-2">
-                        <span className="text-[10px] font-bold text-gray-400 uppercase">From:</span>
-                        <span className="text-xs font-black text-indigo-600 bg-indigo-50 px-2 py-1 rounded-lg">ADMINISTRATION</span>
+                      <div className="flex items-center gap-2 mt-4 pt-4 border-t border-gray-50">
+                        <span className="text-[10px] font-bold text-gray-400 uppercase">Status:</span>
+                        <div className="flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                          <span className="text-xs font-black text-emerald-600">Active Circular</span>
+                        </div>
+                        <span className="text-[10px] font-black text-indigo-400 ml-auto uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">Read More &rarr;</span>
                       </div>
                     </div>
                   ))
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* Modal for Notice Details */}
+          {selectedNotice && (
+            <div
+              className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300"
+              onClick={() => setSelectedNotice(null)}
+            >
+              <div
+                onClick={e => e.stopPropagation()}
+                className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden border border-gray-100 animate-in zoom-in-95 duration-300"
+              >
+                <div className="p-8 bg-gradient-to-r from-orange-500 to-rose-500 text-white relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-20 -mt-20 blur-3xl"></div>
+                  <h2 className="text-3xl font-black tracking-tight relative z-10 mb-2">{selectedNotice.title}</h2>
+                  <div className="flex items-center gap-3 relative z-10">
+                    <span className="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border border-white/20">Official Circular</span>
+                    <span className="text-orange-100 text-xs font-medium">{new Date(selectedNotice.createdAt).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                  </div>
+                  <button
+                    onClick={() => setSelectedNotice(null)}
+                    className="absolute top-6 right-6 w-10 h-10 bg-white/20 hover:bg-white/30 backdrop-blur-md rounded-full flex items-center justify-center text-white transition-all shadow-lg"
+                  >
+                    <FaTimes />
+                  </button>
+                </div>
+                <div className="p-10 max-h-[60vh] overflow-y-auto bg-white">
+                  <div className="prose prose-lg max-w-none">
+                    <p className="text-gray-700 leading-relaxed whitespace-pre-wrap text-lg font-medium">
+                      {selectedNotice.content}
+                    </p>
+                  </div>
+                  <div className="mt-8 pt-6 border-t border-gray-100 flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center text-orange-500"><FaBullhorn /></div>
+                    <div>
+                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Sent By</p>
+                      <p className="text-sm font-bold text-gray-800">Institute Administration</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-6 bg-gray-50 border-t border-gray-100 text-right">
+                  <button
+                    onClick={() => setSelectedNotice(null)}
+                    className="px-10 py-4 bg-gray-900 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-gray-800 transition-all shadow-xl hover:shadow-2xl active:scale-95"
+                  >
+                    Close Notice
+                  </button>
+                </div>
               </div>
             </div>
           )}

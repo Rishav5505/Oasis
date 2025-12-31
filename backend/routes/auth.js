@@ -53,7 +53,9 @@ router.post('/register', upload.single('profilePhoto'), async (req, res) => {
       const student = new Student({
         userId: user._id,
         name: user.name,
-        // email: user.email, // Student schema might not have email, check model if needed, but name is safe
+        fatherName: req.body.fatherName,
+        motherName: req.body.motherName,
+        dob: req.body.dob,
         admissionDate: new Date(),
       });
       await student.save();

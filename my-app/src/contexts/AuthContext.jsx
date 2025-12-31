@@ -33,9 +33,14 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  const login = async (email, password) => {
+  const login = async (email, password, selectedRole) => {
     const res = await axios.post('http://localhost:5002/api/auth/login', { email, password });
     const { token: receivedToken, role, id, mustChangePassword: mcp } = res.data;
+
+    // Validate that the user's role matches the selected portal role
+    if (selectedRole && role !== selectedRole) {
+      throw { response: { data: { message: `This account is a ${role} account. Please use the correct portal.` } } };
+    }
 
     setToken(receivedToken);
     sessionStorage.setItem('token', receivedToken);
