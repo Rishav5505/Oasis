@@ -7,7 +7,7 @@ import { BiWorld } from 'react-icons/bi';
 
 const Home = () => {
   return (
-    <div className="min-h-screen bg-white selection:bg-indigo-500 selection:text-white">
+    <div className="min-h-screen bg-white dark:bg-gray-950 selection:bg-indigo-500 selection:text-white transition-colors duration-300">
       <Navbar />
 
       {/* Modern Hero Section */}
@@ -50,20 +50,20 @@ const Home = () => {
 
           {/* Floating Stats Card - Responsive adjustments */}
           <div className="relative md:absolute bottom-0 left-0 right-0 md:translate-y-1/2 w-full max-w-5xl mx-auto mt-12 md:mt-0 animate-fade-in-up" style={{ animationDelay: '0.5s' }}>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-white rounded-3xl shadow-2xl border border-gray-100">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-white dark:bg-gray-800 rounded-3xl shadow-2xl border border-gray-100 dark:border-gray-700">
               {[
                 { icon: FaUserGraduate, count: "5000+", label: "Students", color: "text-blue-600", bg: "bg-blue-50" },
                 { icon: FaTrophy, count: "95%", label: "Selection Rate", color: "text-yellow-500", bg: "bg-yellow-50" },
                 { icon: FaChalkboardTeacher, count: "50+", label: "Expert Faculty", color: "text-purple-600", bg: "bg-purple-50" },
                 { icon: BiWorld, count: "10+", label: "Years Impact", color: "text-green-600", bg: "bg-green-50" },
               ].map((stat, idx) => (
-                <div key={idx} className="flex flex-col md:flex-row items-center justify-center gap-3 md:gap-4 p-3 md:p-4 rounded-2xl hover:bg-gray-50 transition-colors cursor-default group">
+                <div key={idx} className="flex flex-col md:flex-row items-center justify-center gap-3 md:gap-4 p-3 md:p-4 rounded-2xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-default group">
                   <div className={`w-10 h-10 md:w-12 md:h-12 rounded-xl ${stat.bg} ${stat.color} flex items-center justify-center text-xl md:text-2xl group-hover:scale-110 transition-transform`}>
                     <stat.icon />
                   </div>
                   <div className="text-center md:text-left">
-                    <h3 className="text-xl md:text-2xl font-bold text-gray-900">{stat.count}</h3>
-                    <p className="text-xs md:text-sm text-gray-500 font-medium">{stat.label}</p>
+                    <h3 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">{stat.count}</h3>
+                    <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400 font-medium">{stat.label}</p>
                   </div>
                 </div>
               ))}
@@ -73,20 +73,20 @@ const Home = () => {
       </section>
 
       {/* Spacing for floating stats */}
-      <div className="h-12 md:h-32 bg-gray-50"></div>
+      <div className="h-12 md:h-32 bg-gray-50 dark:bg-gray-950 transition-colors duration-300"></div>
 
       {/* Features Section - Bento Grid Style */}
-      <section className="py-24 bg-gray-50">
+      <section className="py-24 bg-gray-50 dark:bg-gray-950 transition-colors duration-300">
         <div className="container mx-auto px-6">
           <div className="text-center mb-16">
             <h2 className="text-indigo-600 font-bold tracking-wide uppercase text-sm mb-3">Why Choose Oasis</h2>
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">Reinventing Exam Prep</h2>
-            <p className="text-gray-500 max-w-2xl mx-auto text-lg">We don't just teach; we transform potential into performance through technology and mentorship.</p>
+            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4">Reinventing Exam Prep</h2>
+            <p className="text-gray-500 dark:text-gray-400 max-w-2xl mx-auto text-lg">We don't just teach; we transform potential into performance through technology and mentorship.</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Feature 1 */}
-            <div className="md:col-span-2 group relative bg-white rounded-[2rem] p-10 shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden border border-gray-100">
+            <div className="md:col-span-2 group relative bg-white dark:bg-gray-800 rounded-[2rem] p-10 shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden border border-gray-100 dark:border-gray-700">
               <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
                 <FaAtom className="text-9xl text-indigo-600 rotate-12" />
               </div>
@@ -94,8 +94,8 @@ const Home = () => {
                 <div className="w-16 h-16 bg-indigo-100 rounded-2xl flex items-center justify-center mb-6 text-indigo-600 text-3xl">
                   <FaChalkboardTeacher />
                 </div>
-                <h3 className="text-3xl font-bold text-gray-900 mb-4">World-Class Mentorship</h3>
-                <p className="text-gray-600 text-lg leading-relaxed max-w-lg">
+                <h3 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">World-Class Mentorship</h3>
+                <p className="text-gray-600 dark:text-gray-300 text-lg leading-relaxed max-w-lg">
                   Learn directly from IITians and industry experts. Our faculty doesn't just deliver lectures; they mentor you through every doubt and difficulty, ensuring concepts are crystal clear.
                 </p>
               </div>
@@ -113,23 +113,23 @@ const Home = () => {
             </div>
 
             {/* Feature 3 */}
-            <div className="bg-white rounded-[2rem] p-10 shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100 group">
+            <div className="bg-white dark:bg-gray-800 rounded-[2rem] p-10 shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100 dark:border-gray-700 group">
               <div className="w-16 h-16 bg-pink-100 rounded-2xl flex items-center justify-center mb-6 text-pink-600 text-3xl group-hover:scale-110 transition-transform">
                 <FaLightbulb />
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-3">Smart Learning</h3>
-              <p className="text-gray-600">AI-driven analytics to track your weak points and turn them into strengths.</p>
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">Smart Learning</h3>
+              <p className="text-gray-600 dark:text-gray-300">AI-driven analytics to track your weak points and turn them into strengths.</p>
             </div>
 
             {/* Feature 4 */}
-            <div className="md:col-span-2 bg-white rounded-[2rem] p-10 shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100">
+            <div className="md:col-span-2 bg-white dark:bg-gray-800 rounded-[2rem] p-10 shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100 dark:border-gray-700">
               <div className="flex flex-col md:flex-row items-center gap-8">
                 <div className="flex-1">
                   <div className="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center mb-6 text-green-600 text-3xl">
                     <IoIosPeople />
                   </div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-3">Community & Peer Learning</h3>
-                  <p className="text-gray-600 leading-relaxed">
+                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">Community & Peer Learning</h3>
+                  <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
                     Join a community of ambitious aspirants. Weekly group discussions, peer problem solving, and a competitive yet supportive environment that pushes you to be your best.
                   </p>
                 </div>
@@ -144,11 +144,11 @@ const Home = () => {
       </section>
 
       {/* Testimonials - Scrolling Cards */}
-      <section className="py-24 bg-white overflow-hidden">
+      <section className="py-24 bg-white dark:bg-gray-900 overflow-hidden transition-colors duration-300">
         <div className="container mx-auto px-6 mb-12 flex justify-between items-end">
           <div>
             <h2 className="text-indigo-600 font-bold tracking-wide uppercase text-sm mb-3">Testimonials</h2>
-            <h2 className="text-4xl font-bold text-gray-900">Student Success Stories</h2>
+            <h2 className="text-4xl font-bold text-gray-900 dark:text-white">Student Success Stories</h2>
           </div>
           <button className="hidden md:flex items-center gap-2 text-indigo-600 font-semibold hover:text-indigo-700 transition">
             Read all stories <FaArrowRight />
@@ -162,17 +162,17 @@ const Home = () => {
             { name: "Rahul Singh", rank: "AIR 543", college: "IIT Kanpur", quote: "Personalized attention is not just a marketing term here; it's a reality.", color: "from-orange-500 to-red-500" },
             { name: "Disu Singh", rank: "AIR 1043", college: "IIT Kanpur", quote: "Personalized attention is not just a marketing term here; it's a reality.", color: "from-orange-500 to-red-500" },
           ].map((student, idx) => (
-            <div key={idx} className="min-w-[350px] md:min-w-[400px] bg-white rounded-3xl p-8 border border-gray-100 shadow-xl hover:shadow-2xl transition-all duration-300 snap-center">
+            <div key={idx} className="min-w-[350px] md:min-w-[400px] bg-white dark:bg-gray-800 rounded-3xl p-8 border border-gray-100 dark:border-gray-700 shadow-xl hover:shadow-2xl transition-all duration-300 snap-center">
               <div className="flex items-center gap-4 mb-6">
                 <div className={`w-14 h-14 rounded-full bg-gradient-to-br ${student.color} flex items-center justify-center text-white font-bold text-xl shadow-lg`}>
                   {student.name[0]}
                 </div>
                 <div>
-                  <h4 className="font-bold text-gray-900 text-lg">{student.name}</h4>
-                  <p className="text-sm font-semibold text-indigo-600">{student.rank} • {student.college}</p>
+                  <h4 className="font-bold text-gray-900 dark:text-white text-lg">{student.name}</h4>
+                  <p className="text-sm font-semibold text-indigo-600 dark:text-indigo-400">{student.rank} • {student.college}</p>
                 </div>
               </div>
-              <p className="text-gray-600 italic leading-relaxed text-lg">"{student.quote}"</p>
+              <p className="text-gray-600 dark:text-gray-300 italic leading-relaxed text-lg">"{student.quote}"</p>
               <div className="mt-6 flex text-yellow-400 text-sm">
                 {'★'.repeat(5)}
               </div>

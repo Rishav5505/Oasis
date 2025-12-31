@@ -3,6 +3,8 @@ const Notice = require('../models/Notice');
 const auth = require('../middleware/auth');
 const roleAuth = require('../middleware/roleAuth');
 
+const User = require('../models/User');
+const Notification = require('../models/Notification');
 const router = express.Router();
 
 // Create notice (admin)
@@ -16,8 +18,26 @@ router.post('/', auth, roleAuth('admin'), async (req, res) => {
       targetRoles,
     });
     await notice.save();
+
+    // Broadcast notification to target users
+    if (targetRoles && targetRoles.length > 0) {
+      const users = await User.find({ role: { $in: targetRoles } });
+      const notifications = users.map(user => ({
+        recipient: user._id,
+        title: `New Notice: ${title}`,
+        message: content.substring(0, 50) + (content.length > 50 ? '...' : ''),
+        type: 'general',
+        read: false
+      }));
+
+      if (notifications.length > 0) {
+        await Notification.insertMany(notifications);
+      }
+    }
+
     res.json(notice);
   } catch (err) {
+    console.error('Error creating notice:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });

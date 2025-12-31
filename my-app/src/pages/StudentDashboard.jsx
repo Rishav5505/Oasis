@@ -4,6 +4,10 @@ import { AuthContext } from '../contexts/AuthContext';
 import { FaUser, FaCalendarAlt, FaBook, FaBullhorn, FaDownload, FaMoneyBillWave, FaClipboardList, FaGraduationCap, FaEdit, FaSave, FaTimes, FaCamera, FaBell, FaChartLine, FaClock, FaStar, FaCheckCircle, FaChevronRight } from 'react-icons/fa';
 import oasisLogo from '../assets/oasis_logo.png';
 import receiptBanner from '../assets/receipt_banner.png';
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
+import { Bar } from 'react-chartjs-2';
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 const StudentDashboard = () => {
   const { user } = useContext(AuthContext);
@@ -29,6 +33,45 @@ const StudentDashboard = () => {
     email: '',
     admissionDate: ''
   });
+
+  // Countdown Timer Logic
+  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+  const [nextExam, setNextExam] = useState(null);
+
+  useEffect(() => {
+    if (exams.length > 0) {
+      const upcoming = exams
+        .filter(e => new Date(e.date) > new Date())
+        .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+      if (upcoming.length > 0) {
+        setNextExam(upcoming[0]);
+      }
+    }
+  }, [exams]);
+
+  useEffect(() => {
+    if (!nextExam) return;
+
+    const timer = setInterval(() => {
+      const now = new Date();
+      const examDate = new Date(nextExam.date);
+      const difference = examDate - now;
+
+      if (difference <= 0) {
+        clearInterval(timer);
+        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+      } else {
+        const days = Math.floor(difference / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((difference / (1000 * 60 * 60)) % 24);
+        const minutes = Math.floor((difference / 1000 / 60) % 60);
+        const seconds = Math.floor((difference / 1000) % 60);
+        setTimeLeft({ days, hours, minutes, seconds });
+      }
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [nextExam]);
 
   useEffect(() => {
     if (user?.id) {
@@ -312,10 +355,12 @@ const StudentDashboard = () => {
     );
   }
 
+
+  // Render
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-gray-950 dark:to-slate-900 transition-colors duration-300">
       {/* Header */}
-      <header className="bg-white shadow-lg border-b border-gray-200">
+      <header className="bg-white dark:bg-gray-900 shadow-lg border-b border-gray-200 dark:border-gray-800 sticky top-0 z-30 transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-4">
@@ -323,8 +368,8 @@ const StudentDashboard = () => {
                 <img src={oasisLogo} alt="Oasis Logo" className="w-full h-full object-contain" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Student Portal</h1>
-                <p className="text-sm text-gray-500">Welcome back, {student.name || profile.name || 'Student'}</p>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Student Portal</h1>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Welcome back, {student.name || profile.name || 'Student'}</p>
               </div>
             </div>
             <div className="flex items-center space-x-4">
@@ -341,8 +386,8 @@ const StudentDashboard = () => {
                   )}
                 </div>
                 <div className="hidden md:block">
-                  <p className="font-medium text-gray-900">{student.name || profile.name}</p>
-                  <p className="text-sm text-gray-500">Student ID: {user?.id?.slice(-6)}</p>
+                  <p className="font-medium text-gray-900 dark:text-white">{student.name || profile.name}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Student ID: {user?.id?.slice(-6)}</p>
                 </div>
               </div>
             </div>
@@ -412,15 +457,15 @@ const StudentDashboard = () => {
 
         {/* Quick Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="group bg-white rounded-3xl shadow-sm border border-gray-100 p-8 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden">
+          <div className="group bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 p-8 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-bl-[5rem] -mr-10 -mt-10 transition-transform group-hover:scale-110"></div>
             <div className="relative flex flex-col items-center text-center">
               <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center text-2xl mb-6 shadow-lg rotate-3 group-hover:rotate-0 transition-transform">
                 <FaCalendarAlt />
               </div>
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Academic Attendance</p>
+              <p className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">Academic Attendance</p>
               <div className="relative mb-2">
-                <p className="text-4xl font-black text-gray-900 tracking-tight">{calculateAttendancePercentage()}%</p>
+                <p className="text-4xl font-black text-gray-900 dark:text-white tracking-tight">{calculateAttendancePercentage()}%</p>
                 <div className="w-full h-1 bg-gray-100 rounded-full mt-2 overflow-hidden">
                   <div
                     className="h-full bg-emerald-500 rounded-full transition-all duration-1000"
@@ -440,9 +485,9 @@ const StudentDashboard = () => {
               <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center text-2xl mb-6 shadow-lg rotate-3 group-hover:rotate-0 transition-transform">
                 <FaBook />
               </div>
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Average Marks</p>
+              <p className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">Average Marks</p>
               <div className="relative mb-2">
-                <p className="text-4xl font-black text-gray-900 tracking-tight">
+                <p className="text-4xl font-black text-gray-900 dark:text-white tracking-tight">
                   {marks.length > 0 ? Math.round(marks.reduce((sum, m) => sum + (m.marks || 0), 0) / marks.length) : 0}%
                 </p>
                 <div className="w-full h-1 bg-gray-100 rounded-full mt-2 overflow-hidden">
@@ -456,37 +501,66 @@ const StudentDashboard = () => {
             </div>
           </div>
 
-          <div className="group bg-white rounded-3xl shadow-sm border border-gray-100 p-8 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden">
+          <div className="group bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 p-8 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-red-50 rounded-bl-[5rem] -mr-10 -mt-10 transition-transform group-hover:scale-110"></div>
             <div className="relative flex flex-col items-center text-center">
               <div className="w-16 h-16 bg-red-100 text-red-600 rounded-2xl flex items-center justify-center text-2xl mb-6 shadow-lg rotate-3 group-hover:rotate-0 transition-transform">
                 <FaMoneyBillWave />
               </div>
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Unpaid Balance</p>
-              <p className="text-4xl font-black text-gray-900 tracking-tight mb-2">₹{fees.pendingFees || 0}</p>
+              <p className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">Unpaid Balance</p>
+              <p className="text-4xl font-black text-gray-900 dark:text-white tracking-tight mb-2">₹{fees.pendingFees || 0}</p>
               <p className="text-xs font-bold text-red-600 bg-red-50 px-3 py-1 rounded-full">Due: {fees.dueDate ? new Date(fees.dueDate).toLocaleDateString() : 'Paid'}</p>
             </div>
           </div>
 
-          <div className="group bg-white rounded-3xl shadow-sm border border-gray-100 p-8 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-purple-50 rounded-bl-[5rem] -mr-10 -mt-10 transition-transform group-hover:scale-110"></div>
+          {/* Dynamic Exam Countdown Card (Replaces static Scheduled Exams) */}
+          <div className="group bg-gradient-to-br from-violet-600 to-indigo-700 rounded-3xl shadow-lg shadow-indigo-200 border border-indigo-500 p-8 hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden text-white">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-bl-[5rem] -mr-10 -mt-10 transition-transform group-hover:scale-110"></div>
             <div className="relative flex flex-col items-center text-center">
-              <div className="w-16 h-16 bg-purple-100 text-purple-600 rounded-2xl flex items-center justify-center text-2xl mb-6 shadow-lg rotate-3 group-hover:rotate-0 transition-transform">
-                <FaClipboardList />
+              <div className="w-16 h-16 bg-white/20 text-white rounded-2xl flex items-center justify-center text-2xl mb-4 shadow-lg backdrop-blur-sm">
+                <FaClock className="animate-pulse" />
               </div>
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Scheduled Exams</p>
-              <p className="text-4xl font-black text-gray-900 tracking-tight mb-2">{exams.filter(e => new Date(e.date) > new Date()).length}</p>
-              <p className="text-xs font-bold text-purple-600 bg-purple-50 px-3 py-1 rounded-full">Next 30 Days</p>
+
+              {nextExam ? (
+                <>
+                  <p className="text-[10px] font-black text-indigo-200 uppercase tracking-widest mb-1">Next: {nextExam.name}</p>
+                  <div className="flex gap-2 mb-2">
+                    <div className="bg-white/10 rounded p-1 min-w-[30px]">
+                      <span className="font-black text-xl block leading-none">{String(timeLeft.days).padStart(2, '0')}</span>
+                      <span className="text-[8px] uppercase opacity-70">Day</span>
+                    </div>
+                    <span className="font-bold pt-1">:</span>
+                    <div className="bg-white/10 rounded p-1 min-w-[30px]">
+                      <span className="font-black text-xl block leading-none">{String(timeLeft.hours).padStart(2, '0')}</span>
+                      <span className="text-[8px] uppercase opacity-70">Hr</span>
+                    </div>
+                    <span className="font-bold pt-1">:</span>
+                    <div className="bg-white/10 rounded p-1 min-w-[30px]">
+                      <span className="font-black text-xl block leading-none">{String(timeLeft.minutes).padStart(2, '0')}</span>
+                      <span className="text-[8px] uppercase opacity-70">Min</span>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="text-[10px] font-black text-indigo-200 uppercase tracking-widest mb-1">Upcoming Exams</p>
+                  <p className="text-3xl font-black tracking-tight mb-2">None</p>
+                </>
+              )}
+
+              <p className="text-xs font-bold text-white bg-white/20 px-4 py-1.5 rounded-full border border-white/10">
+                {nextExam ? new Date(nextExam.date).toLocaleDateString() : 'Relax & Prepare!'}
+              </p>
             </div>
           </div>
         </div>
 
         {/* Complete Your Profile Section */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 md:p-8 mb-8">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 md:p-8 mb-8 transition-colors duration-300">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-6">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Complete Your Profile</h2>
-              <p className="text-gray-600">Keep your information up to date for better services</p>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Complete Your Profile</h2>
+              <p className="text-gray-600 dark:text-gray-300">Keep your information up to date for better services</p>
             </div>
             <div className="flex flex-wrap items-center gap-4 md:gap-6 w-full md:w-auto mt-4 md:mt-0">
               <div className="text-left md:text-right">
@@ -714,6 +788,110 @@ const StudentDashboard = () => {
               </div>
             </div>
           )}
+        </div>
+
+        {/* Analytics & Digital ID Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+          {/* Performance Chart */}
+          <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Performance Analytics</h2>
+                <p className="text-gray-500 text-sm">Subject-wise marks distribution</p>
+              </div>
+              <FaChartLine className="text-blue-500 text-xl" />
+            </div>
+            <div className="h-64">
+              {marks.length > 0 ? (
+                <Bar
+                  data={{
+                    labels: marks.map(m => m.subjectId?.name || 'Subject'),
+                    datasets: [{
+                      label: 'Marks Obtained',
+                      data: marks.map(m => m.marks),
+                      backgroundColor: 'rgba(59, 130, 246, 0.8)',
+                      borderRadius: 8,
+                    }]
+                  }}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                      y: { beginAtZero: true, max: 100 }
+                    }
+                  }}
+                />
+              ) : (
+                <div className="h-full flex flex-col items-center justify-center text-gray-400">
+                  <FaChartLine className="text-4xl mb-2" />
+                  <p>No performance data available</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Digital ID Card */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 flex flex-col">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-gray-900">Digital ID Card</h2>
+              <button
+                onClick={() => {
+                  const printContent = document.getElementById('digital-id-card').innerHTML;
+                  const win = window.open('', '', 'width=400,height=600');
+                  win.document.write('<html><head><title>Student ID Card</title></head><body style="padding: 20px; display: flex; justify-content: center;">' + printContent + '</body></html>');
+                  win.document.close();
+                  win.print();
+                }}
+                className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1 uppercase tracking-wider"
+              >
+                <FaDownload /> Print ID
+              </button>
+            </div>
+
+            <div id="digital-id-card" className="flex-1 bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-6 text-white relative overflow-hidden shadow-2xl flex flex-col items-center text-center">
+              {/* ID Card Decor */}
+              <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500"></div>
+              <img src={oasisLogo} alt="Logo" className="w-12 h-12 object-contain mb-4 brightness-200" />
+
+              <div className="w-24 h-24 rounded-full border-4 border-white/20 p-1 mb-4">
+                <img
+                  src={`http://localhost:5002${student.profilePhoto || profile.profilePhoto}`}
+                  onError={(e) => { e.target.onerror = null; e.target.src = 'https://ui-avatars.com/api/?name=' + (student.name || 'Student'); }}
+                  alt="Student"
+                  className="w-full h-full rounded-full object-cover bg-slate-700"
+                />
+              </div>
+
+              <h3 className="text-xl font-bold mb-1">{student.name || profile.name || 'Student Name'}</h3>
+              <p className="text-blue-300 text-xs font-bold uppercase tracking-widest mb-4">Oasis JEE Student</p>
+
+              <div className="w-full space-y-2 text-sm bg-white/5 rounded-xl p-4 border border-white/10">
+                <div className="flex justify-between">
+                  <span className="text-slate-400">ID No.</span>
+                  <span className="font-mono">{user?.id?.slice(-8).toUpperCase()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Class</span>
+                  <span>{student.classId?.name || 'N/A'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Batch</span>
+                  <span>{student.batchId?.name || 'N/A'}</span>
+                </div>
+              </div>
+
+              <div className="mt-auto pt-4 w-full">
+                <div className="w-full h-8 bg-white rounded flex items-center justify-center">
+                  {/* Barcode Placeholder */}
+                  <div className="flex gap-1 h-4">
+                    {[...Array(20)].map((_, i) => (
+                      <div key={i} className={`w-${Math.floor(Math.random() * 2) + 1} bg-black h-full`}></div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Main Content Grid */}

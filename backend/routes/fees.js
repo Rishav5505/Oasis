@@ -30,19 +30,19 @@ router.post('/pay', auth, roleAuth('admin'), async (req, res) => {
         if (studentProfile) {
             // Create Notification for Student
             await new Notification({
-                userId: studentProfile.userId,
+                recipient: studentProfile.userId,
                 title: 'Fee Payment Received',
                 message: `We have received a payment of ₹${amount} for ${type}. Transaction ID: ${transactionId || 'N/A'}. You can download the receipt from your dashboard.`,
-                type: 'payment'
+                type: 'fee'
             }).save();
 
             // Create Notification for Parent (if linked)
             if (studentProfile.parentId) {
                 await new Notification({
-                    userId: studentProfile.parentId,
+                    recipient: studentProfile.parentId,
                     title: 'Fee Payment Confirmation',
                     message: `Payment of ₹${amount} received for your ward ${studentProfile.name}. You can download the receipt from your dashboard.`,
-                    type: 'payment'
+                    type: 'fee'
                 }).save();
             }
         }

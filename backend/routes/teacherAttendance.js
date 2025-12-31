@@ -21,7 +21,13 @@ router.post('/mark', auth, roleAuth('teacher'), async (req, res) => {
         });
 
         if (attendance) {
-            return res.status(400).json({ message: `Attendance already marked for ${className || 'General'} today` });
+            // Update existing attendance instead of error
+            attendance.status = status || attendance.status;
+            attendance.remarks = remarks || attendance.remarks;
+            // distinct checkInTime logic: keep original or update? 
+            // Usually checkInTime should be the first one. We won't update checkInTime.
+            await attendance.save();
+            return res.json(attendance);
         }
 
         attendance = new TeacherAttendance({
