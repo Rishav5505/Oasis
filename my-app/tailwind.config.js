@@ -4,7 +4,12 @@ export default {
     "./src/**/*.jsx",
   ],
   theme: {
-    extend: {},
+    extend: {
+      container: {
+        center: false,
+        padding: '0',
+      },
+    },
   },
   plugins: [],
 }

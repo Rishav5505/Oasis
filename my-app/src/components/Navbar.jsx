@@ -8,10 +8,27 @@ import oasisBannerLogo from '../assets/oasis_banner_new.png';
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 50) { // Adjust scroll threshold as needed
+        setScrolled(true);
+      } else {
+        setScrolled(false);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
 
   return (
-    <nav className="sticky top-0 z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-100 dark:border-gray-800 shadow-sm transition-all duration-300">
-      <div className="container mx-auto px-6 py-4 flex justify-between items-center">
+    <nav className={`fixed top-0 left-0 w-screen z-[100] transition-all duration-300 ${scrolled ? 'bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg shadow-lg' : 'bg-transparent'}`}>
+      <div className="max-w-7xl mx-auto px-4 md:px-6 py-4 flex justify-between items-center">
         <Link to="/" className="group flex items-center">
           <img
             src={oasisBannerLogo}

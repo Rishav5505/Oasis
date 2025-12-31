@@ -241,8 +241,8 @@ const Home = () => {
       </section>
 
       {/* Courses & Batches Section */}
-      <section id="courses" className="py-20 bg-gray-50">
-        <div className="container mx-auto px-4">
+      <section id="courses" className="py-24 w-full">
+        <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold text-gray-800 mb-4">Our Courses & Batches</h2>
             <p className="text-gray-600 text-lg">Comprehensive programs designed for JEE success</p>
@@ -288,11 +288,11 @@ const Home = () => {
       </section>
 
       {/* Smart ERP Features Section */}
-      <section className="py-20 bg-white">
-        <div className="container mx-auto px-4">
+      <section className="py-24 bg-indigo-600 w-full relative overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-gray-800 mb-4">Smart ERP System</h2>
-            <p className="text-gray-600 text-lg">Technology-driven coaching for modern learning</p>
+            <h2 className="text-4xl font-bold text-white mb-4">Smart ERP System</h2>
+            <p className="text-indigo-100 text-lg">Technology-driven coaching for modern learning</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
@@ -349,8 +349,8 @@ const Home = () => {
 
       {/* Faculty Showcase Section */}
       {faculty.length > 0 && (
-        <section className="py-20 bg-gray-50">
-          <div className="container mx-auto px-4">
+        <section className="py-24 bg-white dark:bg-gray-950 w-full">
+          <div className="max-w-7xl mx-auto px-4">
             <div className="text-center mb-12">
               <h2 className="text-4xl font-bold text-gray-800 mb-4">Our Expert Faculty</h2>
               <p className="text-gray-600 text-lg">Learn from IIT alumni and experienced educators</p>
@@ -383,8 +383,8 @@ const Home = () => {
       )}
 
       {/* How It Works Section */}
-      <section className="py-20 bg-white">
-        <div className="container mx-auto px-4">
+      <section className="py-24 bg-slate-50 dark:bg-gray-950 w-full">
+        <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold text-gray-800 mb-4">How It Works</h2>
             <p className="text-gray-600 text-lg">Simple steps to start your JEE journey</p>
@@ -436,8 +436,8 @@ const Home = () => {
 
       {/* Parent Testimonials Section */}
       {testimonials.length > 0 && (
-        <section className="py-20 bg-gradient-to-br from-indigo-50 to-purple-50">
-          <div className="container mx-auto px-4">
+        <section className="py-20 bg-gradient-to-br from-indigo-50 to-purple-50 w-full">
+          <div className="max-w-7xl mx-auto px-4">
             <div className="text-center mb-12">
               <h2 className="text-4xl font-bold text-gray-800 mb-4">What Parents Say</h2>
               <p className="text-gray-600 text-lg">Real experiences from satisfied parents</p>
@@ -483,8 +483,8 @@ const Home = () => {
       )}
 
       {/* Events Gallery Section */}
-      <section className="py-20 bg-white">
-        <div className="container mx-auto px-4">
+      <section className="py-24 w-full">
+        <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold text-gray-800 mb-4">Life at Oasis: Events Gallery</h2>
             <p className="text-gray-600 text-lg">Glimpses of our vibrant campus life, celebrations, and achievements</p>
@@ -527,8 +527,8 @@ const Home = () => {
       </section>
 
       {/* Free Demo Enquiry Form Section */}
-      <section id="demo-form" className="py-20 bg-gray-50">
-        <div className="container mx-auto px-4">
+      <section id="demo-form" className="py-24 bg-slate-900 text-white w-full">
+        <div className="max-w-7xl mx-auto px-4">
           <div className="max-w-2xl mx-auto bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl shadow-2xl p-8 md:p-12 text-white">
             <div className="text-center mb-8">
               <h2 className="text-4xl font-bold mb-4">Book Your Free Demo Class</h2>
@@ -639,9 +639,9 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Contact & Location Section */}
-      <section className="py-20 bg-gray-50">
-        <div className="container mx-auto px-4">
+      {/* Contact & Location Section - Full Width */}
+      <section className="py-24 bg-gray-50 dark:bg-gray-900 transition-colors duration-300 w-full">
+        <div className="max-w-7xl mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold text-gray-800 mb-4">Visit Us</h2>
             <p className="text-gray-600 text-lg">We're here to help you succeed</p>
