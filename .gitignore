@@ -22,3 +22,9 @@ backend/*.log
 *.sw?
 logs
 *.log
+
+# Android
+my-app/android/build
+my-app/android/app/build
+my-app/android/.gradle
+my-app/android/local.properties
