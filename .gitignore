@@ -1,24 +1,62 @@
 # Frontend (my-app)
+
 my-app/node_modules
+
 my-app/dist
+
 my-app/dist-ssr
+
 my-app/*.local
+
 my-app/npm-debug.log*
 
+
+
 # Backend
+
 backend/node_modules
+
 backend/.env
+
 backend/uploads
+
 backend/*.log
 
+
+
 # Global / IDE
-.vscode/
+
+
 .idea/
+
 .DS_Store
+
 *.suo
+
 *.ntvs*
+
 *.njsproj
+
 *.sln
+
 *.sw?
+
 logs
+
 *.log
+
+
+
+# Android
+
+my-app/android/build
+
+my-app/android/app/build
+
+my-app/android/.gradle
+
+my-app/android/local.properties
+
+config.bat
+
+node_modules
