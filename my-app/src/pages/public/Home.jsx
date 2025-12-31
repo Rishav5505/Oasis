@@ -118,29 +118,28 @@ const Home = () => {
     <div className="min-h-screen bg-gray-50 overflow-x-hidden">
       <Navbar />
 
-      <section className="relative min-h-[90vh] flex items-center text-white overflow-hidden bg-black w-full">
-        {/* Background Slideshow */}
+      <section className="relative h-[95vh] w-screen flex items-center justify-center overflow-hidden bg-slate-900">
+        {/* Background Slideshow - Edge to Edge */}
         {heroImages.map((img, idx) => (
           <div
             key={idx}
-            className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${idx === currentHeroIndex ? 'opacity-100' : 'opacity-0'
+            className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${idx === currentHeroIndex ? 'opacity-100 scale-100' : 'opacity-0 scale-110'
               }`}
-            style={{
-              backgroundImage: `url(${img})`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-            }}
-          />
+          >
+            <img
+              src={img}
+              alt="Oasis Hero"
+              className="w-full h-full object-cover transform transition-transform duration-[5000ms] ease-out"
+            />
+            {/* Improved Gradient Overlay */}
+            <div className="absolute inset-0 bg-gradient-to-r from-slate-900/90 via-slate-900/40 to-transparent"></div>
+          </div>
         ))}
 
-        {/* Dark Overlay for Readability */}
-        <div className="absolute inset-0 bg-black/30 z-[1]"></div>
-
-        {/* Animated Background Blobs (Slightly more subtle) */}
+        {/* Animated Background Blobs */}
         <div className="absolute inset-0 overflow-hidden z-[2] pointer-events-none opacity-20">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-600/30 rounded-full blur-[100px] animate-blob"></div>
-          <div className="absolute top-1/3 right-1/4 w-96 h-96 bg-purple-600/30 rounded-full blur-[100px] animate-blob animation-delay-2000"></div>
-          <div className="absolute bottom-1/4 left-1/2 w-96 h-96 bg-pink-600/20 rounded-full blur-[100px] animate-blob animation-delay-4000"></div>
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-600/30 rounded-full blur-[120px] animate-blob"></div>
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-600/30 rounded-full blur-[120px] animate-blob animation-delay-2000"></div>
         </div>
 
         <div className="container mx-auto px-4 relative z-10">
@@ -214,8 +213,8 @@ const Home = () => {
       </section>
 
       {/* Portal Login Section */}
-      <section id="portal-login" className="py-8 bg-white border-b">
-        <div className="container mx-auto px-4">
+      <section id="portal-login" className="py-12 bg-white dark:bg-gray-950 border-b dark:border-gray-800 w-full">
+        <div className="max-w-7xl mx-auto px-4">
           <div className="max-w-5xl mx-auto">
             <h3 className="text-center text-gray-700 font-semibold mb-4">🚀 Portal Login</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
