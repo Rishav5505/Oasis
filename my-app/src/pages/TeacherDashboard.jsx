@@ -78,8 +78,8 @@ const TeacherDashboard = () => {
     const headers = { 'Authorization': `Bearer ${token}` };
     try {
       const [resProfile, resTeacher] = await Promise.all([
-        axios.get('http://localhost:5002/api/auth/me', { headers }),
-        axios.get('http://localhost:5002/api/teacher/me', { headers })
+        axios.get('https://oasis-fdpj.onrender.com/api/auth/me', { headers }),
+        axios.get('https://oasis-fdpj.onrender.com/api/teacher/me', { headers })
       ]);
       setProfile(resProfile.data);
       setTeacherData(resTeacher.data);
@@ -95,7 +95,7 @@ const TeacherDashboard = () => {
     if (!token) return;
     const headers = { 'Authorization': `Bearer ${token}` };
     try {
-      const res = await axios.get('http://localhost:5002/api/exams', { headers });
+      const res = await axios.get('https://oasis-fdpj.onrender.com/api/exams', { headers });
       console.log('📚 Fetched Exams:', res.data);
       setExams(res.data);
     } catch (err) {
@@ -108,7 +108,7 @@ const TeacherDashboard = () => {
     if (!token) return;
     const headers = { 'Authorization': `Bearer ${token}` };
     try {
-      const res = await axios.get('http://localhost:5002/api/notices', { headers });
+      const res = await axios.get('https://oasis-fdpj.onrender.com/api/notices', { headers });
       setNotices(res.data);
     } catch (err) {
       console.error('Error fetching notices:', err);
@@ -119,14 +119,14 @@ const TeacherDashboard = () => {
     const token = sessionStorage.getItem('token');
     if (!token) return;
     try {
-      const res = await axios.get('http://localhost:5002/api/attendance/teacher/today', {
+      const res = await axios.get('https://oasis-fdpj.onrender.com/api/attendance/teacher/today', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       // res.data.data is now an array
       setTodayAttendance(res.data.data || []);
 
       // Fetch history
-      const historyRes = await axios.get('http://localhost:5002/api/attendance/teacher/me', {
+      const historyRes = await axios.get('https://oasis-fdpj.onrender.com/api/attendance/teacher/me', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       setMyAttendanceHistory(historyRes.data);
@@ -142,7 +142,7 @@ const TeacherDashboard = () => {
     }
     const token = sessionStorage.getItem('token');
     try {
-      await axios.post('http://localhost:5002/api/attendance/teacher/mark',
+      await axios.post('https://oasis-fdpj.onrender.com/api/attendance/teacher/mark',
         { className: selectedCheckInClass },
         { headers: { 'Authorization': `Bearer ${token}` } }
       );
@@ -162,11 +162,11 @@ const TeacherDashboard = () => {
     const headers = { 'Authorization': `Bearer ${token}` };
     try {
       // 1. Fetch students for class
-      const studentRes = await axios.get(`http://localhost:5002/api/teacher/classes/${selectedClass}/students`, { headers });
+      const studentRes = await axios.get(`https://oasis-fdpj.onrender.com/api/teacher/classes/${selectedClass}/students`, { headers });
       setStudents(studentRes.data);
 
       // 2. Fetch existing attendance for this class/subject/date
-      const attendanceRes = await axios.get(`http://localhost:5002/api/attendance/class/${selectedClass}/subject/${attendanceSubject}/date/${attendanceDate}`, { headers });
+      const attendanceRes = await axios.get(`https://oasis-fdpj.onrender.com/api/attendance/class/${selectedClass}/subject/${attendanceSubject}/date/${attendanceDate}`, { headers });
 
       // 3. Merge attendance into status object
       const initialStatus = {};
@@ -189,7 +189,7 @@ const TeacherDashboard = () => {
     if (!token) return;
     const headers = { 'Authorization': `Bearer ${token}` };
     try {
-      const res = await axios.get(`http://localhost:5002/api/teacher/classes/${classId}/students`, { headers });
+      const res = await axios.get(`https://oasis-fdpj.onrender.com/api/teacher/classes/${classId}/students`, { headers });
       if (type === 'attendance') {
         setStudents(res.data);
         const initialAttendance = {};
@@ -219,7 +219,7 @@ const TeacherDashboard = () => {
 
     setLoadingStudents(true);
     try {
-      await axios.post('http://localhost:5002/api/attendance/bulk', {
+      await axios.post('https://oasis-fdpj.onrender.com/api/attendance/bulk', {
         students: studentsToSave,
         date: attendanceDate,
         subjectId: attendanceSubject
@@ -239,7 +239,7 @@ const TeacherDashboard = () => {
     const token = sessionStorage.getItem('token');
     const headers = { 'Authorization': `Bearer ${token}` };
     try {
-      await axios.post('http://localhost:5002/api/marks', {
+      await axios.post('https://oasis-fdpj.onrender.com/api/marks', {
         ...newMark,
         studentId: selectedMarkStudent._id
       }, { headers });
@@ -263,7 +263,7 @@ const TeacherDashboard = () => {
       'Content-Type': 'multipart/form-data'
     };
     try {
-      await axios.post('http://localhost:5002/api/study-material', formData, { headers });
+      await axios.post('https://oasis-fdpj.onrender.com/api/study-material', formData, { headers });
       alert('Study material uploaded successfully!');
       setMaterialForm({ title: '', subjectId: '', file: null });
     } catch (err) {

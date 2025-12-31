@@ -109,7 +109,7 @@ const AdminDashboard = () => {
 
   const fetchProfile = async () => {
     try {
-      const res = await axios.get('http://localhost:5002/api/auth/me');
+      const res = await axios.get('https://oasis-fdpj.onrender.com/api/auth/me');
       setProfile(res.data);
       setEditForm({ name: res.data.name, phone: res.data.phone, email: res.data.email, address: res.data.address });
     } catch (err) {
@@ -130,7 +130,7 @@ const AdminDashboard = () => {
       formData.append('address', editForm.address);
       if (photoFile) formData.append('profilePhoto', photoFile);
 
-      await axios.put('http://localhost:5002/api/auth/me', formData, {
+      await axios.put('https://oasis-fdpj.onrender.com/api/auth/me', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       setEditMode(false);
@@ -146,7 +146,7 @@ const AdminDashboard = () => {
     console.log('Fetching users...');
     try {
       setLoading(true);
-      const res = await axios.get('http://localhost:5002/api/users');
+      const res = await axios.get('https://oasis-fdpj.onrender.com/api/users');
       console.log('Users fetched:', res.data);
       setUsers(res.data);
       const studentUsers = res.data.filter(u => u.role === 'student');
@@ -168,7 +168,7 @@ const AdminDashboard = () => {
 
   const fetchAllStudents = async () => {
     try {
-      const res = await axios.get('http://localhost:5002/api/users/students/all');
+      const res = await axios.get('https://oasis-fdpj.onrender.com/api/users/students/all');
       setAllStudents(res.data);
     } catch (err) {
       console.error('Error fetching all students:', err);
@@ -178,7 +178,7 @@ const AdminDashboard = () => {
   const fetchTeacherAttendanceCount = async () => {
     try {
       const token = sessionStorage.getItem('token');
-      const res = await axios.get('http://localhost:5002/api/attendance/teacher/all', {
+      const res = await axios.get('https://oasis-fdpj.onrender.com/api/attendance/teacher/all', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -197,9 +197,9 @@ const AdminDashboard = () => {
       const token = sessionStorage.getItem('token');
       const headers = { 'Authorization': `Bearer ${token}` };
       const [classesRes, subjectsRes, batchesRes] = await Promise.all([
-        axios.get('http://localhost:5002/api/users/classes', { headers }),
-        axios.get('http://localhost:5002/api/users/subjects', { headers }),
-        axios.get('http://localhost:5002/api/users/batches', { headers })
+        axios.get('https://oasis-fdpj.onrender.com/api/users/classes', { headers }),
+        axios.get('https://oasis-fdpj.onrender.com/api/users/subjects', { headers }),
+        axios.get('https://oasis-fdpj.onrender.com/api/users/batches', { headers })
       ]);
       setAvailableClasses(classesRes.data);
       setAvailableSubjects(subjectsRes.data);
@@ -216,7 +216,7 @@ const AdminDashboard = () => {
 
     // Fetch real fee stats
     const tkn = sessionStorage.getItem('token');
-    axios.get('http://localhost:5002/api/fees/stats', { headers: { 'Authorization': `Bearer ${tkn}` } })
+    axios.get('https://oasis-fdpj.onrender.com/api/fees/stats', { headers: { 'Authorization': `Bearer ${tkn}` } })
       .then(res => {
         setStats({
           totalStudents,
@@ -236,7 +236,7 @@ const AdminDashboard = () => {
   const fetchFees = async () => {
     try {
       const token = sessionStorage.getItem('token');
-      const res = await axios.get('http://localhost:5002/api/fees/all', {
+      const res = await axios.get('https://oasis-fdpj.onrender.com/api/fees/all', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       setFees(res.data);
@@ -249,7 +249,7 @@ const AdminDashboard = () => {
     e.preventDefault();
     try {
       const token = sessionStorage.getItem('token');
-      await axios.post('http://localhost:5002/api/fees/pay', feeForm, {
+      await axios.post('https://oasis-fdpj.onrender.com/api/fees/pay', feeForm, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       alert('Payment recorded successfully!');
@@ -267,7 +267,7 @@ const AdminDashboard = () => {
     try {
       const token = sessionStorage.getItem('token');
       // selectedFeeStudent.userId is the User ID string.
-      await axios.put(`http://localhost:5002/api/users/students/${selectedFeeStudent.userId}/fee`,
+      await axios.put(`https://oasis-fdpj.onrender.com/api/users/students/${selectedFeeStudent.userId}/fee`,
         { totalFee: newTotalFee },
         { headers: { 'Authorization': `Bearer ${token}` } }
       );
@@ -333,8 +333,8 @@ const AdminDashboard = () => {
     setSelectedStudent(student);
     try {
       const [attendanceRes, marksRes] = await Promise.all([
-        axios.get(`http://localhost:5002/api/attendance/student/${student._id}`),
-        axios.get(`http://localhost:5002/api/marks/student/${student._id}`)
+        axios.get(`https://oasis-fdpj.onrender.com/api/attendance/student/${student._id}`),
+        axios.get(`https://oasis-fdpj.onrender.com/api/marks/student/${student._id}`)
       ]);
       console.log('Attendance:', attendanceRes.data);
       console.log('Marks:', marksRes.data);
@@ -347,7 +347,7 @@ const AdminDashboard = () => {
   const handleAddTeacher = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('http://localhost:5002/api/users/teachers', teacherForm);
+      await axios.post('https://oasis-fdpj.onrender.com/api/users/teachers', teacherForm);
       alert('Teacher added successfully');
       setTeacherForm({ name: '', email: '', phone: '', subjects: '', batches: '', classes: '', password: '' });
       fetchUsers();
@@ -360,7 +360,7 @@ const AdminDashboard = () => {
   const handleUpdateTeacherAssignments = async (e) => {
     e.preventDefault();
     try {
-      await axios.put(`http://localhost:5002/api/users/teachers/${assignForm.teacherId}`, assignForm);
+      await axios.put(`https://oasis-fdpj.onrender.com/api/users/teachers/${assignForm.teacherId}`, assignForm);
       alert('Assignments updated successfully');
       setShowAssignModal(false);
       fetchUsers();
@@ -385,7 +385,7 @@ const AdminDashboard = () => {
     setViewingAttendanceTeacher(teacher);
     try {
       const token = sessionStorage.getItem('token');
-      const res = await axios.get('http://localhost:5002/api/attendance/teacher/all', {
+      const res = await axios.get('https://oasis-fdpj.onrender.com/api/attendance/teacher/all', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       // Filter in frontend for now as backend returns all
@@ -403,7 +403,7 @@ const AdminDashboard = () => {
       return;
     }
     try {
-      await axios.post('http://localhost:5002/api/users/link-parent', {
+      await axios.post('https://oasis-fdpj.onrender.com/api/users/link-parent', {
         parentId: linkParentId,
         studentId: linkStudentId
       });
@@ -440,7 +440,7 @@ const AdminDashboard = () => {
       }
 
       const headers = { Authorization: `Bearer ${token}` };
-      const response = await axios.post('http://localhost:5002/api/notices', newNotice, { headers });
+      const response = await axios.post('https://oasis-fdpj.onrender.com/api/notices', newNotice, { headers });
 
       alert('Notice published successfully!');
       setShowNoticeModal(false);
@@ -1576,7 +1576,7 @@ const AdminDashboard = () => {
                 <div className="flex flex-col items-center mb-10">
                   <div className="w-32 h-32 rounded-[2.5rem] bg-indigo-50 border-4 border-white shadow-xl flex items-center justify-center text-4xl text-indigo-600 font-black mb-6 relative group overflow-hidden">
                     {profile.profilePhoto ? (
-                      <img src={`http://localhost:5002${profile.profilePhoto}`} className="w-full h-full object-cover" />
+                      <img src={`https://oasis-fdpj.onrender.com${profile.profilePhoto}`} className="w-full h-full object-cover" />
                     ) : profile.name?.charAt(0)}
                     <div className="absolute inset-0 bg-indigo-900/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all cursor-pointer">
                       <FaPlus className="text-white" />

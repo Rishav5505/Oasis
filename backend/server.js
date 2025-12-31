@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -29,12 +30,15 @@ app.use(express.json());
 app.use('/uploads', express.static('uploads'));
 
 // Connect to MongoDB
-mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/coaching-institute', {
+mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })
   .then(() => console.log('MongoDB connected'))
-  .catch(err => console.log(err));
+  .catch(err => {
+    console.error('MongoDB connection error:', err);
+    process.exit(1);
+  });
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
