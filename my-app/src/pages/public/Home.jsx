@@ -136,10 +136,10 @@ const Home = () => {
         {/* Cinematic Dark Overlay for Maximum Text Pop */}
         <div className="absolute inset-0 bg-black/40 z-[5]"></div>
 
-        <div className="container mx-auto px-4 relative z-20">
+        <div className="container mx-auto px-4 relative z-20 pt-24 md:pt-0">
           <div className="max-w-5xl mx-auto text-center">
-            {/* Badge as seen in screenshot */}
-            <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md rounded-full px-5 py-2 mb-8 border border-white/20">
+            {/* Badge - Positioned to avoid Navbar overlap */}
+            <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md rounded-full px-5 py-2 mb-8 mt-12 md:mt-0 border border-white/20">
               <span className="text-yellow-400 text-lg">🏆</span>
               <span className="text-xs md:text-sm font-semibold text-white tracking-wide uppercase">
                 10+ Years of Excellence in JEE Coaching
