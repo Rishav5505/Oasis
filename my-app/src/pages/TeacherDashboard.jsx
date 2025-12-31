@@ -96,6 +96,7 @@ const TeacherDashboard = () => {
     const headers = { 'Authorization': `Bearer ${token}` };
     try {
       const res = await axios.get('http://localhost:5002/api/exams', { headers });
+      console.log('📚 Fetched Exams:', res.data);
       setExams(res.data);
     } catch (err) {
       console.error('Error fetching exams:', err);
@@ -642,8 +643,19 @@ const TeacherDashboard = () => {
                             required
                           >
                             <option value="">-- Select Exam --</option>
-                            {exams.map(e => <option key={e._id} value={e._id}>{e.name} ({e.type})</option>)}
+                            {exams.length === 0 ? (
+                              <option value="" disabled>No exams available</option>
+                            ) : (
+                              exams.map(e => (
+                                <option key={e._id} value={e._id}>
+                                  {e.name} • {e.type.toUpperCase()}
+                                </option>
+                              ))
+                            )}
                           </select>
+                          {exams.length === 0 && (
+                            <p className="text-xs text-red-500 ml-4 mt-1">⚠️ No exams found. Please contact admin to create exams.</p>
+                          )}
                         </div>
                       </div>
                       <div className="space-y-2">
