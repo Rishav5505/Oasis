@@ -185,53 +185,45 @@ router.put('/teachers/:id', auth, roleAuth('admin'), async (req, res) => {
     const teacher = await Teacher.findById(req.params.id);
     if (!teacher) return res.status(404).json({ message: 'Teacher not found' });
 
-    if (subjects !== undefined) {
-      let subjectIds = [];
-      const names = Array.isArray(subjects) ? subjects : subjects.split(',');
-      for (const name of names) {
-        let sub = await Subject.findOne({ name: name.trim() });
-        if (!sub) {
-          sub = new Subject({ name: name.trim() });
-          await sub.save();
+    // Helper to resolve IDs - accepts array of IDs or names
+    const resolveIds = async (items, Model) => {
+      if (!items || (Array.isArray(items) && items.length === 0)) return [];
+      const arr = Array.isArray(items) ? items : items.split(',').map(i => i.trim());
+      const ids = [];
+      for (const item of arr) {
+        // Check if item is a valid MongoDB ObjectId
+        if (item.match(/^[0-9a-fA-F]{24}$/)) {
+          ids.push(item); // Already an ID
+        } else {
+          // It's a name, find or create
+          let doc = await Model.findOne({ name: item });
+          if (!doc) {
+            doc = new Model({ name: item });
+            await doc.save();
+          }
+          ids.push(doc._id);
         }
-        subjectIds.push(sub._id);
       }
-      teacher.subjects = subjectIds;
+      return ids;
+    };
+
+    if (subjects !== undefined) {
+      teacher.subjects = await resolveIds(subjects, Subject);
     }
 
     if (batches !== undefined) {
-      let batchIds = [];
-      const names = Array.isArray(batches) ? batches : batches.split(',');
-      for (const name of names) {
-        let b = await Batch.findOne({ name: name.trim() });
-        if (!b) {
-          b = new Batch({ name: name.trim() });
-          await b.save();
-        }
-        batchIds.push(b._id);
-      }
-      teacher.batches = batchIds;
+      teacher.batches = await resolveIds(batches, Batch);
     }
 
     if (classes !== undefined) {
-      let classIds = [];
-      const names = Array.isArray(classes) ? classes : classes.split(',');
-      for (const name of names) {
-        let c = await Class.findOne({ name: name.trim() });
-        if (!c) {
-          c = new Class({ name: name.trim() });
-          await c.save();
-        }
-        classIds.push(c._id);
-      }
-      teacher.classes = classIds;
+      teacher.classes = await resolveIds(classes, Class);
     }
 
     await teacher.save();
     res.json({ message: 'Teacher assignments updated', teacher });
   } catch (err) {
     console.error('Error updating teacher assignments:', err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
 

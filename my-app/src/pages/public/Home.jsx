@@ -202,8 +202,8 @@ const Home = () => {
       </section>
 
       {/* Portal Login Section */}
-      <section id="portal-login" className="py-8 bg-white border-b">
-        <div className="container mx-auto px-4">
+      <section id="portal-login" className="py-12 bg-white dark:bg-gray-950 border-b dark:border-gray-800 w-full">
+        <div className="max-w-7xl mx-auto px-4">
           <div className="max-w-5xl mx-auto">
             <h3 className="text-center text-gray-700 font-semibold mb-4">🚀 Portal Login</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -489,7 +489,7 @@ const Home = () => {
               { img: coaching7, title: "Exam Preparation", size: "col-span-1 row-span-1" },
               { img: coaching8, title: "Expert Mentorship", size: "col-span-1 row-span-1" },
               { img: coaching9, title: "Campus Life", size: "col-span-1 row-span-1" },
-              { img: coaching10, title: "Annual Day", size: "md:col-span-2 md:row-span-1 col-span-2" },
+              { img: coaching10, title: "Annual Day", size: "md:col-span-2 md:row-span-1 col-span-1" },
               { img: coaching11, title: "Award Ceremony", size: "col-span-1 row-span-1" },
               { img: coaching12, title: "Classroom Learning", size: "col-span-1 row-span-1" },
             ].map((item, idx) => (

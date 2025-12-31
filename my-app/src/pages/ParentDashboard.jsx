@@ -28,6 +28,7 @@ const ParentDashboard = () => {
     const [notices, setNotices] = useState([]);
     const [fees, setFees] = useState({});
     const [notifications, setNotifications] = useState([]);
+    const [selectedSubject, setSelectedSubject] = useState('All');
     const [activeTab, setActiveTab] = useState('Overview');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
@@ -271,6 +272,35 @@ const ParentDashboard = () => {
         }
     };
 
+    const handleMarkAllRead = async () => {
+        const token = sessionStorage.getItem('token');
+        if (!token) return;
+        try {
+            await axios.patch('http://localhost:5002/api/notifications/read-all', {}, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            // Update local state
+            setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+        } catch (err) {
+            console.error('Error marking notifications as read:', err);
+        }
+    };
+
+    const toggleNotifications = (e) => {
+        e.stopPropagation();
+        setIsNotificationsOpen(!isNotificationsOpen);
+    };
+
+    // Close notifications when clicking outside
+    useEffect(() => {
+        const closeNotifications = () => setIsNotificationsOpen(false);
+        if (isNotificationsOpen) {
+            window.addEventListener('click', closeNotifications);
+        }
+        return () => window.removeEventListener('click', closeNotifications);
+    }, [isNotificationsOpen]);
+
+
     const handleDownloadReceipt = (payment) => {
         const receiptContent = `
             <html>
@@ -321,6 +351,17 @@ const ParentDashboard = () => {
     const attendancePercentage = totalDays > 0 ? Math.round((presentDays / totalDays) * 100) : 0;
     const avgMarks = marks.length > 0 ? Math.round(marks.reduce((a, b) => a + b.marks, 0) / marks.length) : 0;
 
+    // Filtered Attendance for Tab
+    const filteredAttendance = selectedSubject === 'All'
+        ? attendance
+        : attendance.filter(a => a.subjectId?.name === selectedSubject);
+
+    // Filtered Stats
+    const filteredPresent = filteredAttendance.filter(a => a.status === 'present').length;
+    const filteredTotal = filteredAttendance.length;
+    const filteredPercentage = filteredTotal > 0 ? Math.round((filteredPresent / filteredTotal) * 100) : 0;
+    const subjects = ['All', ...new Set(attendance.map(a => a.subjectId?.name).filter(Boolean))];
+
     // Charts with TEAL Theme
     const performanceData = {
         labels: marks.map(m => m.subjectId?.name || m.examId?.name || 'Test'),
@@ -346,7 +387,7 @@ const ParentDashboard = () => {
     if (authLoading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
 
     return (
-        <div className="flex h-screen bg-[#F8FAFC] overflow-hidden relative font-sans">
+        <div className="flex h-screen bg-[#F8FAFC] dark:bg-gray-950 overflow-hidden relative font-sans transition-colors duration-300">
             {isSidebarOpen && (
                 <div
                     className="fixed inset-0 bg-black/50 z-20 lg:hidden backdrop-blur-sm transition-opacity"
@@ -354,9 +395,9 @@ const ParentDashboard = () => {
                 ></div>
             )}
 
-            {/* Sidebar - Indigo/Blue Gradient for Parent Identity */}
-            <aside className={`w-72 bg-gradient-to-b from-indigo-950 via-indigo-900 to-blue-900 text-white flex-shrink-0 flex flex-col shadow-2xl z-30 fixed h-full transition-transform duration-300 lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:static`}>
-                <div className="p-6 flex items-center justify-between border-b border-indigo-800/50">
+            {/* Sidebar - Teal/Emerald Gradient for Parent Identity */}
+            <aside className={`w-72 bg-gradient-to-b from-teal-950 via-teal-900 to-emerald-900 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 text-white flex-shrink-0 flex flex-col shadow-2xl z-30 fixed h-full transition-transform duration-300 lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:static`}>
+                <div className="p-6 flex items-center justify-between border-b border-teal-800/50 dark:border-gray-800">
                     <div className="w-full flex justify-center">
                         <img src={oasisFullLogo} alt="Oasis Logo" className="h-16 object-contain brightness-110 drop-shadow-lg" />
                     </div>
@@ -408,9 +449,9 @@ const ParentDashboard = () => {
             </aside>
 
             {/* Main Content */}
-            <main className="flex-1 flex flex-col overflow-hidden w-full">
+            <main className="flex-1 flex flex-col overflow-hidden w-full bg-[#F8FAFC] dark:bg-gray-950 transition-colors duration-300">
                 {/* Header */}
-                <header className="h-20 bg-white border-b border-gray-100 flex items-center justify-between px-6 lg:px-10 shadow-sm z-[60] w-full">
+                <header className="h-20 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between px-6 lg:px-10 shadow-sm z-[60] w-full transition-colors duration-300">
                     <div className="flex items-center gap-6 flex-1 max-w-2xl text-gray-400">
                         <button
                             onClick={() => setIsSidebarOpen(true)}
@@ -422,7 +463,7 @@ const ParentDashboard = () => {
                             <select
                                 value={selectedChild}
                                 onChange={(e) => setSelectedChild(e.target.value)}
-                                className="bg-gray-50 border-none rounded-xl px-4 py-2 font-bold text-sm text-indigo-600 focus:ring-0 cursor-pointer"
+                                className="bg-gray-50 dark:bg-gray-800 border-none rounded-xl px-4 py-2 font-bold text-sm text-indigo-600 dark:text-indigo-400 focus:ring-0 cursor-pointer outline-none transition-colors"
                             >
                                 {children.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
                             </select>
@@ -432,63 +473,80 @@ const ParentDashboard = () => {
                     <div className="flex items-center gap-8">
                         {/* Notifications */}
                         <div className="relative">
-                            <div
-                                onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-                                className={`p-2 cursor-pointer hover:bg-gray-50 rounded-full transition-colors relative ${isNotificationsOpen ? 'bg-gray-50 text-indigo-600' : 'text-gray-400'}`}
+                            <button
+                                onClick={toggleNotifications}
+                                className={`p-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-full transition-colors relative focus:outline-none ${isNotificationsOpen ? 'bg-gray-50 dark:bg-gray-800 text-indigo-600 dark:text-indigo-400' : 'text-gray-400'}`}
                             >
-                                <FaBell className={`text-lg transition-colors ${isNotificationsOpen ? 'text-indigo-500' : ''}`} />
-                                {notifications.some(n => !n.read) && <span className="absolute top-1.5 right-2 w-2 h-2 bg-red-500 rounded-full border border-white"></span>}
-                            </div>
-
-                            {/* Backdrop for mobile to click outside */}
-                            {isNotificationsOpen && (
-                                <div
-                                    className="fixed inset-0 z-40 lg:hidden"
-                                    onClick={() => setIsNotificationsOpen(false)}
-                                ></div>
-                            )}
+                                <FaBell className={`text-xl transition-colors ${isNotificationsOpen ? 'text-indigo-500 dark:text-indigo-400' : 'text-gray-400'}`} />
+                                {notifications.some(n => !n.read) && (
+                                    <span className="absolute top-2 right-2.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-gray-900 animate-pulse"></span>
+                                )}
+                            </button>
 
                             {/* Notification Dropdown */}
                             {isNotificationsOpen && (
-                                <div className="fixed inset-x-4 top-24 lg:absolute lg:inset-auto lg:right-[-10px] lg:top-full lg:mt-4 w-auto lg:w-80 lg:max-w-sm bg-white rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-gray-50 p-3 z-50 animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
-                                    <div className="flex items-center justify-between p-3 border-b border-gray-50 mb-2">
-                                        <h3 className="text-sm font-black text-gray-800 uppercase tracking-widest">Notifications</h3>
-                                        <span className="bg-indigo-50 text-indigo-600 text-[10px] font-black px-2 py-0.5 rounded-full">{notifications.length} Total</span>
+                                <div
+                                    className="fixed inset-x-4 top-24 lg:absolute lg:inset-auto lg:right-[-10px] lg:top-full lg:mt-4 w-auto lg:w-96 bg-white dark:bg-gray-900 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-gray-100 dark:border-gray-700 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+                                    onClick={(e) => e.stopPropagation()}
+                                >
+                                    <div className="p-5 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-gray-50/50 dark:bg-gray-800/50 backdrop-blur-sm">
+                                        <div className="flex items-center gap-2">
+                                            <h3 className="font-black text-gray-800 dark:text-white text-xs uppercase tracking-widest">Notifications</h3>
+                                            <span className="bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-[10px] font-black px-2 py-0.5 rounded-full">{notifications.length} Total</span>
+                                        </div>
+                                        {notifications.some(n => !n.read) && (
+                                            <button
+                                                onClick={handleMarkAllRead}
+                                                className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 uppercase tracking-wider bg-indigo-50 dark:bg-indigo-900/30 px-2 py-1 rounded-md transition-colors"
+                                            >
+                                                Mark all read
+                                            </button>
+                                        )}
                                     </div>
                                     <div className="max-h-[60vh] lg:max-h-80 overflow-y-auto custom-scrollbar">
-                                        {notifications.length > 0 ? notifications.map(n => (
-                                            <div
-                                                key={n._id}
-                                                onClick={() => {
-                                                    setSelectedNotice(n);
-                                                    setIsNotificationsOpen(false);
-                                                }}
-                                                className="p-4 hover:bg-indigo-50/50 rounded-2xl mb-1 cursor-pointer transition-colors group"
-                                            >
-                                                <div className="flex items-start gap-3">
-                                                    <div className="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0 group-hover:bg-white transition-colors">
-                                                        <FaBell className="text-xs" />
+                                        {notifications.length > 0 ? (
+                                            <div className="divide-y divide-gray-50 dark:divide-gray-800">
+                                                {notifications.map(n => (
+                                                    <div
+                                                        key={n._id}
+                                                        onClick={() => {
+                                                            setSelectedNotice(n);
+                                                            setIsNotificationsOpen(false);
+                                                        }}
+                                                        className={`p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer group ${!n.read ? 'bg-indigo-50/30 dark:bg-indigo-900/10' : ''}`}
+                                                    >
+                                                        <div className="flex gap-4">
+                                                            <div className={`mt-1 w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-colors ${!n.read ? 'bg-indigo-500 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-400'}`}>
+                                                                <FaBell className="text-xs" />
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className={`text-xs font-bold mb-1 truncate ${!n.read ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400'}`}>
+                                                                    {n.title}
+                                                                </p>
+                                                                <p className="text-[10px] text-gray-500 dark:text-gray-500 leading-relaxed line-clamp-2">
+                                                                    {n.message}
+                                                                </p>
+                                                                <p className="text-[9px] text-gray-400 dark:text-gray-600 mt-2 font-bold uppercase tracking-widest">
+                                                                    {new Date(n.createdAt).toLocaleDateString()}
+                                                                </p>
+                                                            </div>
+                                                        </div>
                                                     </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="text-xs font-bold text-gray-800 mb-0.5 truncate">{n.title}</p>
-                                                        <p className="text-[10px] text-gray-500 line-clamp-2 leading-relaxed">{n.message}</p>
-                                                        <p className="text-[9px] text-gray-300 font-bold mt-1 uppercase tracking-tighter">{new Date(n.createdAt || Date.now()).toLocaleDateString()}</p>
-                                                    </div>
-                                                </div>
+                                                ))}
                                             </div>
-                                        )) : (
-                                            <div className="p-10 text-center">
-                                                <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center text-gray-200 mx-auto mb-4">
+                                        ) : (
+                                            <div className="p-10 text-center flex flex-col items-center justify-center text-center">
+                                                <div className="w-16 h-16 bg-gray-50 dark:bg-gray-800 rounded-full flex items-center justify-center text-gray-200 dark:text-gray-700 mx-auto mb-4">
                                                     <FaBell className="text-2xl" />
                                                 </div>
-                                                <p className="text-xs text-gray-400 font-bold">All caught up!</p>
+                                                <p className="text-xs text-gray-400 dark:text-gray-500 font-bold uppercase tracking-widest">All caught up!</p>
                                             </div>
                                         )}
                                     </div>
-                                    <div className="p-2 pt-1 border-t border-gray-50 mt-2">
+                                    <div className="p-3 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-800 text-center">
                                         <button
                                             onClick={() => setIsNotificationsOpen(false)}
-                                            className="w-full py-2.5 bg-gray-50 hover:bg-gray-100 text-gray-400 font-black text-[10px] uppercase rounded-xl transition-colors"
+                                            className="w-full py-2.5 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 dark:text-gray-500 font-black text-[10px] uppercase rounded-xl transition-colors tracking-widest"
                                         >
                                             Close Panel
                                         </button>
@@ -496,21 +554,21 @@ const ParentDashboard = () => {
                                 </div>
                             )}
                         </div>
+                    </div>
 
-                        <div className="flex items-center gap-4 px-5 py-2.5 bg-gray-50 rounded-2xl border border-dotted border-gray-200 cursor-pointer hover:bg-white transition-all">
-                            <div className="w-9 h-9 rounded-xl bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-sm">
-                                {profile.name?.charAt(0).toUpperCase() || 'P'}
-                            </div>
-                            <div className="text-right hidden md:block">
-                                <p className="text-xs font-bold text-gray-900 leading-none mb-1">{profile.name || 'Parent'}</p>
-                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Guardian</p>
-                            </div>
+                    <div className="flex items-center gap-4 px-5 py-2.5 bg-gray-50 dark:bg-gray-800 rounded-2xl border border-dotted border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-white dark:hover:bg-gray-700 transition-all group">
+                        <div className="w-9 h-9 rounded-xl bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold text-sm group-hover:scale-105 transition-transform">
+                            {profile.name?.charAt(0).toUpperCase() || 'P'}
+                        </div>
+                        <div className="text-right hidden md:block">
+                            <p className="text-xs font-bold text-gray-900 dark:text-white leading-none mb-1">{profile.name || 'Parent'}</p>
+                            <p className="text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider">Guardian</p>
                         </div>
                     </div>
                 </header>
 
                 {/* Dashboard Content */}
-                <div className="flex-1 overflow-y-auto p-10 space-y-10 scroll-smooth">
+                < div className="flex-1 overflow-y-auto p-10 space-y-10 scroll-smooth" >
                     {activeTab === 'Overview' && (
                         <>
                             {/* Welcome Banner - Parent Indigo Style */}
@@ -555,7 +613,7 @@ const ParentDashboard = () => {
                                     <div
                                         key={i}
                                         onClick={() => stat.id === 'fees' && setActiveTab('Fees')}
-                                        className={`p-8 bg-white rounded-[2.5rem] border border-gray-100 shadow-[0_8px_30px_-8px_rgba(0,0,0,0.06)] transition-all duration-300 relative overflow-hidden group hover:-translate-y-1 hover:shadow-xl ${stat.id === 'fees' ? 'cursor-pointer' : ''}`}
+                                        className={`p-8 bg-white dark:bg-gray-800 rounded-[2.5rem] border border-gray-100 dark:border-gray-700 shadow-[0_8px_30px_-8px_rgba(0,0,0,0.06)] transition-all duration-300 relative overflow-hidden group hover:-translate-y-1 hover:shadow-xl ${stat.id === 'fees' ? 'cursor-pointer' : ''}`}
                                     >
                                         <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${stat.gradient} opacity-10 rounded-full -mr-12 -mt-12 group-hover:scale-150 transition-transform duration-700 ease-out`}></div>
                                         <div className="flex items-center justify-between mb-8 relative">
@@ -568,21 +626,21 @@ const ParentDashboard = () => {
                                         </div>
                                         <div className="flex items-end justify-between relative">
                                             <div>
-                                                <h3 className="text-4xl font-[900] text-slate-800 mb-2 tracking-tight">{stat.value}</h3>
-                                                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">{stat.label}</p>
+                                                <h3 className="text-4xl font-[900] text-slate-800 dark:text-white mb-2 tracking-tight">{stat.value}</h3>
+                                                <p className="text-xs font-bold text-slate-400 dark:text-gray-500 uppercase tracking-widest">{stat.label}</p>
                                             </div>
                                             {stat.id === 'fees' && (
-                                                <button className="p-2 bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-600 hover:text-white transition-all shadow-sm">
+                                                <button className="p-2 bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded-xl hover:bg-rose-600 hover:text-white transition-all shadow-sm">
                                                     <FaMoneyBillWave />
                                                 </button>
                                             )}
                                         </div>
-                                    </div>
+                                    </div >
                                 ))}
-                            </div>
+                            </div >
 
                             {/* Live Notices Section - Restored */}
-                            <div className="bg-white rounded-[2.5rem] p-8 border border-gray-100 shadow-sm mb-6 mt-6">
+                            < div className="bg-white rounded-[2.5rem] p-8 border border-gray-100 shadow-sm mb-6 mt-6" >
                                 <div className="flex items-center justify-between mb-6">
                                     <h3 className="text-xl font-black text-gray-800 flex items-center gap-2">
                                         <FaBullhorn className="text-orange-500" /> Latest Updates
@@ -609,15 +667,15 @@ const ParentDashboard = () => {
                                     ))}
                                     {notices.length === 0 && <p className="text-gray-400 text-sm font-bold italic col-span-2 text-center py-4">No recent updates</p>}
                                 </div>
-                            </div>
+                            </div >
 
                             {/* Charts Grid - Admin Layout */}
-                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                                <div className="lg:col-span-2 bg-white rounded-[3rem] p-10 border border-gray-100 shadow-sm transition-all hover:shadow-xl group">
+                            < div className="grid grid-cols-1 lg:grid-cols-3 gap-8" >
+                                <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-[3rem] p-10 border border-gray-100 dark:border-gray-700 shadow-sm transition-all hover:shadow-xl group">
                                     <div className="flex items-center justify-between mb-8">
                                         <div>
-                                            <h2 className="text-2xl font-black text-gray-900 leading-tight">Performance Matrix</h2>
-                                            <p className="text-gray-400 font-bold text-sm">Subject-wise progression</p>
+                                            <h2 className="text-2xl font-black text-gray-900 dark:text-white leading-tight">Performance Matrix</h2>
+                                            <p className="text-gray-400 dark:text-gray-500 font-bold text-sm">Subject-wise progression</p>
                                         </div>
                                     </div>
                                     <div className="h-[350px]">
@@ -625,8 +683,8 @@ const ParentDashboard = () => {
                                     </div>
                                 </div>
 
-                                <div className="bg-white rounded-[3rem] p-10 border border-gray-100 shadow-sm transition-all hover:shadow-xl flex flex-col items-center justify-center text-center">
-                                    <h2 className="text-xl font-black text-gray-900 mb-8 self-start">Attendance</h2>
+                                <div className="bg-white dark:bg-gray-800 rounded-[3rem] p-10 border border-gray-100 dark:border-gray-700 shadow-sm transition-all hover:shadow-xl flex flex-col items-center justify-center text-center">
+                                    <h2 className="text-xl font-black text-gray-900 dark:text-white mb-8 self-start">Attendance</h2>
                                     <div className="w-64 h-64 mb-8">
                                         <Doughnut data={attendanceData} options={{ cutout: '75%', plugins: { legend: { display: false } } }} />
                                     </div>
@@ -641,178 +699,219 @@ const ParentDashboard = () => {
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                            </div >
                         </>
                     )}
 
                     {/* FEES TAB */}
-                    {activeTab === 'Fees' && (
-                        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                            <div className="bg-white rounded-[3rem] p-10 border border-gray-100 shadow-sm">
-                                <h2 className="text-2xl font-black text-gray-900 mb-6">Fee Structure</h2>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                                    <div className="p-6 bg-gray-50 rounded-2xl">
-                                        <p className="text-xs font-bold text-gray-400 uppercase">Total Fee</p>
-                                        <p className="text-3xl font-black text-gray-900">₹{fees.totalFees}</p>
+                    {
+                        activeTab === 'Fees' && (
+                            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                <div className="bg-white dark:bg-gray-800 rounded-[3rem] p-10 border border-gray-100 dark:border-gray-700 shadow-sm">
+                                    <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-6">Fee Structure</h2>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                                        <div className="p-6 bg-gray-50 dark:bg-gray-700 rounded-2xl">
+                                            <p className="text-xs font-bold text-gray-400 dark:text-gray-300 uppercase">Total Fee</p>
+                                            <p className="text-3xl font-black text-gray-900 dark:text-white">₹{fees.totalFees}</p>
+                                        </div>
+                                        <div className="p-6 bg-emerald-50 rounded-2xl">
+                                            <p className="text-xs font-bold text-emerald-600 uppercase">Paid Amount</p>
+                                            <p className="text-3xl font-black text-emerald-700">₹{fees.paidFees}</p>
+                                        </div>
+                                        <div className="p-6 bg-rose-50 rounded-2xl">
+                                            <p className="text-xs font-bold text-rose-600 uppercase">Pending Due</p>
+                                            <p className="text-3xl font-black text-rose-700">₹{fees.pendingFees}</p>
+                                        </div>
                                     </div>
-                                    <div className="p-6 bg-emerald-50 rounded-2xl">
-                                        <p className="text-xs font-bold text-emerald-600 uppercase">Paid Amount</p>
-                                        <p className="text-3xl font-black text-emerald-700">₹{fees.paidFees}</p>
-                                    </div>
-                                    <div className="p-6 bg-rose-50 rounded-2xl">
-                                        <p className="text-xs font-bold text-rose-600 uppercase">Pending Due</p>
-                                        <p className="text-3xl font-black text-rose-700">₹{fees.pendingFees}</p>
-                                    </div>
-                                </div>
 
-                                <div className="mb-8 flex flex-wrap gap-4">
-                                    <button
-                                        onClick={() => setShowPaymentModal(true)}
-                                        className="bg-indigo-600 text-white px-8 py-4 rounded-xl font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all flex items-center gap-2"
-                                    >
-                                        <FaWallet /> Pay Online / Direct
-                                    </button>
-                                </div>
+                                    <div className="mb-8 flex flex-wrap gap-4">
+                                        <button
+                                            onClick={() => setShowPaymentModal(true)}
+                                            className="bg-indigo-600 text-white px-8 py-4 rounded-xl font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all flex items-center gap-2"
+                                        >
+                                            <FaWallet /> Pay Online / Direct
+                                        </button>
+                                    </div>
 
-                                <div className="mt-10">
-                                    <h3 className="text-lg font-bold text-gray-900 mb-4">Payment History</h3>
-                                    <div className="overflow-x-auto">
-                                        <table className="w-full text-left">
-                                            <thead>
-                                                <tr className="border-b border-gray-100 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                                                    <th className="pb-3 pl-4">Date</th>
-                                                    <th className="pb-3">Transaction ID</th>
-                                                    <th className="pb-3">Mode</th>
-                                                    <th className="pb-3">Amount</th>
-                                                    <th className="pb-3">Receipt</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-gray-50">
-                                                {fees.payments?.map(p => (
-                                                    <tr key={p._id} className="hover:bg-gray-50/50">
-                                                        <td className="py-4 pl-4 font-medium text-gray-700">{new Date(p.date).toLocaleDateString()}</td>
-                                                        <td className="py-4 text-sm text-gray-500 font-mono">{p.transactionId || 'N/A'}</td>
-                                                        <td className="py-4 text-sm text-gray-500 capitalize">{p.mode}</td>
-                                                        <td className="py-4 font-bold text-gray-900">₹{p.amount}</td>
-                                                        <td className="py-4">
-                                                            <button onClick={() => handleDownloadReceipt(p)} className="text-indigo-600 text-xs font-bold hover:underline flex items-center gap-1">
-                                                                <FaFilePdf /> Receipt
-                                                            </button>
-                                                        </td>
+                                    <div className="mt-10">
+                                        <h3 className="text-lg font-bold text-gray-900 mb-4">Payment History</h3>
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-left">
+                                                <thead>
+                                                    <tr className="border-b border-gray-100 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                                        <th className="pb-3 pl-4">Date</th>
+                                                        <th className="pb-3">Transaction ID</th>
+                                                        <th className="pb-3">Mode</th>
+                                                        <th className="pb-3">Amount</th>
+                                                        <th className="pb-3">Receipt</th>
                                                     </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
+                                                </thead>
+                                                <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
+                                                    {fees.payments?.map(p => (
+                                                        <tr key={p._id} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition-colors">
+                                                            <td className="py-4 pl-4 font-medium text-gray-700 dark:text-gray-300">{new Date(p.date).toLocaleDateString()}</td>
+                                                            <td className="py-4 text-sm text-gray-500 dark:text-gray-400 font-mono">{p.transactionId || 'N/A'}</td>
+                                                            <td className="py-4 text-sm text-gray-500 dark:text-gray-400 capitalize">{p.mode}</td>
+                                                            <td className="py-4 font-bold text-gray-900 dark:text-white">₹{p.amount}</td>
+                                                            <td className="py-4">
+                                                                <button onClick={() => handleDownloadReceipt(p)} className="text-indigo-600 text-xs font-bold hover:underline flex items-center gap-1">
+                                                                    <FaFilePdf /> Receipt
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    )}
+                        )
+                    }
 
                     {/* ATTENDANCE TAB - Restored Calendar View */}
-                    {activeTab === 'Attendance' && (
-                        <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                            {/* Group attendance by month */}
-                            {Object.entries(
-                                attendance.reduce((acc, curr) => {
-                                    const date = new Date(curr.date);
-                                    const monthKey = date.toLocaleString('default', { month: 'long', year: 'numeric' });
-                                    if (!acc[monthKey]) acc[monthKey] = [];
-                                    acc[monthKey].push(curr);
-                                    return acc;
-                                }, {})
-                            ).reverse().map(([monthYear, monthDays]) => {
-                                const [mName, yName] = monthYear.split(' ');
-                                const mIdx = new Date(`${mName} 1, ${yName}`).getMonth();
-                                const daysInMonth = new Date(yName, mIdx + 1, 0).getDate();
-                                const firstDay = new Date(yName, mIdx, 1).getDay();
+                    {
+                        activeTab === 'Attendance' && (
+                            <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                {/* Attendance Summary */}
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    <div className="bg-white dark:bg-gray-800 p-6 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-sm">
+                                        <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">Total Classes</p>
+                                        <p className="text-3xl font-black text-gray-900 dark:text-white">{filteredTotal}</p>
+                                    </div>
+                                    <div className="bg-white dark:bg-gray-800 p-6 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-sm">
+                                        <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">Present</p>
+                                        <p className="text-3xl font-black text-emerald-500">{filteredPresent}</p>
+                                    </div>
+                                    <div className="bg-white dark:bg-gray-800 p-6 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-sm">
+                                        <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">Absent</p>
+                                        <p className="text-3xl font-black text-rose-500">{filteredTotal - filteredPresent}</p>
+                                    </div>
+                                    <div className="bg-white dark:bg-gray-800 p-6 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-sm">
+                                        <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">Attendance %</p>
+                                        <p className={`text-3xl font-black ${filteredPercentage >= 75 ? 'text-emerald-500' : 'text-rose-500'}`}>{filteredPercentage}%</p>
+                                    </div>
+                                </div>
 
-                                return (
-                                    <div key={monthYear} className="bg-white rounded-[3rem] p-10 border border-gray-100 shadow-sm relative overflow-hidden group">
-                                        <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full -mr-16 -mt-16 group-hover:bg-indigo-500/10 transition-colors"></div>
+                                {/* Filter Section */}
+                                <div className="bg-white dark:bg-gray-800 rounded-[2rem] p-6 border border-gray-100 dark:border-gray-700 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
+                                    <h2 className="text-xl font-black text-gray-900 dark:text-white">Academic Calendar</h2>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-sm font-bold text-gray-500 dark:text-gray-400">Filter by Subject:</span>
+                                        <select
+                                            value={selectedSubject}
+                                            onChange={(e) => setSelectedSubject(e.target.value)}
+                                            className="bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-4 py-2 font-bold text-sm text-indigo-600 dark:text-indigo-400 focus:ring-0 cursor-pointer outline-none transition-colors"
+                                        >
+                                            {subjects.map(sub => (
+                                                <option key={sub} value={sub}>{sub}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
 
-                                        <div className="flex items-center justify-between mb-8 relative z-10">
-                                            <div>
-                                                <h2 className="text-2xl font-black text-gray-900 tracking-tight">{monthYear}</h2>
-                                                <div className="flex gap-4 mt-2">
-                                                    <div className="flex items-center gap-1.5">
-                                                        <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full"></div>
-                                                        <span className="text-[10px] font-black text-gray-400">PRESENT: {monthDays.filter(d => d.status === 'present').length}</span>
-                                                    </div>
-                                                    <div className="flex items-center gap-1.5">
-                                                        <div className="w-2.5 h-2.5 bg-rose-500 rounded-full"></div>
-                                                        <span className="text-[10px] font-black text-gray-400">ABSENT: {monthDays.filter(d => d.status === 'absent').length}</span>
+                                {/* Group attendance by month using FILTERED attendance */}
+                                {Object.entries(
+                                    filteredAttendance.reduce((acc, curr) => {
+                                        const date = new Date(curr.date);
+                                        const monthKey = date.toLocaleString('default', { month: 'long', year: 'numeric' });
+                                        if (!acc[monthKey]) acc[monthKey] = [];
+                                        acc[monthKey].push(curr);
+                                        return acc;
+                                    }, {})
+                                ).reverse().map(([monthYear, monthDays]) => {
+                                    const [mName, yName] = monthYear.split(' ');
+                                    const monthDate = new Date(`${mName} 1, ${yName}`);
+                                    const mIdx = monthDate.getMonth();
+                                    const daysInMonth = new Date(yName, mIdx + 1, 0).getDate();
+                                    const firstDay = new Date(yName, mIdx, 1).getDay();
+
+                                    return (
+                                        <div key={monthYear} className="bg-white dark:bg-gray-800 rounded-[3rem] p-10 border border-gray-100 dark:border-gray-700 shadow-sm relative overflow-hidden group">
+                                            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full -mr-16 -mt-16 group-hover:bg-indigo-500/10 transition-colors"></div>
+
+                                            <div className="flex items-center justify-between mb-8 relative z-10">
+                                                <div>
+                                                    <h2 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">{monthYear}</h2>
+                                                    <div className="flex gap-4 mt-2">
+                                                        <div className="flex items-center gap-1.5">
+                                                            <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full"></div>
+                                                            <span className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">PRESENT: {monthDays.filter(d => d.status === 'present').length}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-1.5">
+                                                            <div className="w-2.5 h-2.5 bg-rose-500 rounded-full"></div>
+                                                            <span className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">ABSENT: {monthDays.filter(d => d.status === 'absent').length}</span>
+                                                        </div>
                                                     </div>
                                                 </div>
+                                                <div className="bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-indigo-100 dark:border-indigo-800">
+                                                    Log Detail
+                                                </div>
                                             </div>
-                                            <div className="bg-indigo-50 text-indigo-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-indigo-100">
-                                                Log Detail
-                                            </div>
-                                        </div>
 
-                                        <div className="grid grid-cols-7 gap-3 relative z-10">
-                                            {['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map(day => (
-                                                <div key={day} className="text-center text-[10px] font-black text-gray-300 py-2">{day}</div>
-                                            ))}
+                                            <div className="grid grid-cols-7 gap-3 relative z-10">
+                                                {['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map(day => (
+                                                    <div key={day} className="text-center text-[10px] font-black text-gray-300 dark:text-gray-600 py-2 uppercase tracking-widest">{day}</div>
+                                                ))}
 
-                                            {/* Empty days before first of month */}
-                                            {Array.from({ length: firstDay }).map((_, i) => (
-                                                <div key={`empty-${i}`} className="h-12 md:h-16"></div>
-                                            ))}
+                                                {/* Empty days before first of month */}
+                                                {Array.from({ length: firstDay }).map((_, i) => (
+                                                    <div key={`empty-${i}`} className="h-12 md:h-16"></div>
+                                                ))}
 
-                                            {/* Days of the month */}
-                                            {Array.from({ length: daysInMonth }).map((_, i) => {
-                                                const dNum = i + 1;
-                                                const attendanceRecord = monthDays.find(ad => new Date(ad.date).getDate() === dNum);
-                                                const isPresent = attendanceRecord?.status === 'present';
-                                                const isAbsent = attendanceRecord?.status === 'absent';
+                                                {/* Days of the month */}
+                                                {Array.from({ length: daysInMonth }).map((_, i) => {
+                                                    const dNum = i + 1;
+                                                    const attendanceRecord = monthDays.find(ad => new Date(ad.date).getDate() === dNum);
+                                                    const isPresent = attendanceRecord?.status === 'present';
+                                                    const isAbsent = attendanceRecord?.status === 'absent';
 
-                                                return (
-                                                    <div
-                                                        key={dNum}
-                                                        className={`h-12 md:h-16 rounded-2xl flex flex-col items-center justify-center relative transition-all border shadow-sm
+                                                    return (
+                                                        <div
+                                                            key={dNum}
+                                                            className={`h-12 md:h-16 rounded-2xl flex flex-col items-center justify-center relative transition-all border shadow-sm
                                                             ${isPresent ? 'bg-emerald-500 text-white border-emerald-400 shadow-emerald-100 scale-105 z-10 font-bold' :
-                                                                isAbsent ? 'bg-rose-500 text-white border-rose-400 shadow-rose-100 scale-105 z-10 font-bold' :
-                                                                    'bg-gray-50 text-gray-400 border-gray-100'}`}
-                                                    >
-                                                        <span className="text-sm md:text-lg">{dNum}</span>
-                                                        {attendanceRecord && (
-                                                            <div className="absolute bottom-1 w-1 h-1 bg-white/50 rounded-full"></div>
-                                                        )}
-                                                    </div>
-                                                );
-                                            })}
+                                                                    isAbsent ? 'bg-rose-500 text-white border-rose-400 shadow-rose-100 scale-105 z-10 font-bold' :
+                                                                        'bg-gray-50 dark:bg-gray-700/50 text-gray-400 dark:text-gray-500 border-gray-100 dark:border-gray-700'}`}
+                                                        >
+                                                            <span className="text-sm md:text-lg">{dNum}</span>
+                                                            {attendanceRecord && (
+                                                                <div className="absolute bottom-1 w-1 h-1 bg-white/50 rounded-full"></div>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
                                         </div>
-                                    </div>
-                                );
-                            })}
+                                    );
+                                })}
 
-                            {attendance.length === 0 && (
-                                <div className="p-20 text-center bg-gray-50 rounded-[3rem] border border-dashed border-gray-200">
-                                    <FaCalendarAlt className="text-4xl text-gray-200 mx-auto mb-4" />
-                                    <p className="text-gray-400 font-bold">No attendance records found for this student.</p>
-                                </div>
-                            )}
-                        </div>
-                    )}
+                                {filteredAttendance.length === 0 && (
+                                    <div className="p-20 text-center bg-gray-50 dark:bg-gray-800 rounded-[3rem] border border-dashed border-gray-200 dark:border-gray-700">
+                                        <FaCalendarAlt className="text-4xl text-gray-200 dark:text-gray-700 mx-auto mb-4" />
+                                        <p className="text-gray-400 dark:text-gray-500 font-bold">No attendance records found for {selectedSubject}.</p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
                     {/* PERFORMANCE TAB */}
                     {activeTab === 'Performance' && (
-                        <div className="bg-white rounded-[3rem] p-10 border border-gray-100 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500">
-                            <h2 className="text-2xl font-black text-gray-900 mb-6">Exam Results</h2>
+                        <div className="bg-white dark:bg-gray-800 rounded-[3rem] p-10 border border-gray-100 dark:border-gray-700 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-6">Exam Results</h2>
                             <table className="w-full text-left">
                                 <thead>
-                                    <tr className="border-b border-gray-100 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                    <tr className="border-b border-gray-100 dark:border-gray-700 text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
                                         <th className="pb-3 pl-4">Subject</th>
                                         <th className="pb-3">Exam</th>
                                         <th className="pb-3 text-center">Marks</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-gray-50">
+                                <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
                                     {marks.map(m => (
-                                        <tr key={m._id} className="hover:bg-gray-50/50">
-                                            <td className="py-4 pl-4 font-bold text-gray-700">{m.subjectId?.name}</td>
-                                            <td className="py-4 text-sm text-gray-500">{m.examId?.name}</td>
+                                        <tr key={m._id} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition-colors">
+                                            <td className="py-4 pl-4 font-bold text-gray-700 dark:text-gray-300">{m.subjectId?.name}</td>
+                                            <td className="py-4 text-sm text-gray-500 dark:text-gray-400">{m.examId?.name}</td>
                                             <td className="py-4 text-center">
                                                 <span className="bg-indigo-50 text-indigo-700 px-3 py-1 rounded-lg font-black text-sm">{m.marks}%</span>
                                             </td>
@@ -827,12 +926,12 @@ const ParentDashboard = () => {
                     {activeTab === 'Materials' && (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                             {materials.map(m => (
-                                <div key={m._id} className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-xl transition-all group">
-                                    <div className="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 text-2xl mb-6 shadow-inner group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                                <div key={m._id} className="bg-white dark:bg-gray-800 p-8 rounded-[2.5rem] border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-xl transition-all group">
+                                    <div className="w-16 h-16 bg-indigo-50 dark:bg-indigo-900/30 rounded-2xl flex items-center justify-center text-indigo-600 dark:text-indigo-400 text-2xl mb-6 shadow-inner group-hover:bg-indigo-600 group-hover:text-white transition-all">
                                         <FaBook />
                                     </div>
-                                    <h3 className="text-xl font-bold text-gray-900 mb-2 truncate">{m.title}</h3>
-                                    <p className="text-xs text-gray-500 mb-6 leading-relaxed">Study material provided for students.</p>
+                                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 truncate">{m.title}</h3>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-6 leading-relaxed">Study material provided for students.</p>
                                     <a
                                         href={`http://localhost:5002/${m.fileUrl}`}
                                         download
@@ -900,162 +999,165 @@ const ParentDashboard = () => {
                     )}
 
                 </div>
-            </main>
+            </main >
 
             {/* Payment Modal Overlay - Complex */}
-            {showPaymentModal && (
-                <div
-                    onClick={() => !paymentLoading && setShowPaymentModal(false)}
-                    className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300"
-                >
+            {
+                showPaymentModal && (
                     <div
-                        onClick={e => e.stopPropagation()}
-                        className="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[92vh] border border-slate-100"
+                        onClick={() => !paymentLoading && setShowPaymentModal(false)}
+                        className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300"
                     >
-                        <div className="p-6 md:p-8 pb-4 flex justify-between items-center bg-white border-b border-slate-50">
-                            <h2 className="text-xl md:text-2xl font-black text-slate-800 tracking-tight">Financial Authorization</h2>
-                            <button onClick={() => setShowPaymentModal(false)} className="w-10 h-10 rounded-xl bg-slate-50 text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-all flex items-center justify-center"><FaTimesCircle className="text-xl" /></button>
-                        </div>
+                        <div
+                            onClick={e => e.stopPropagation()}
+                            className="bg-white dark:bg-gray-800 w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[92vh] border border-slate-100 dark:border-gray-700"
+                        >
+                            <div className="p-6 md:p-8 pb-4 flex justify-between items-center bg-white dark:bg-gray-800 border-b border-slate-50 dark:border-gray-700">
+                                <h2 className="text-xl md:text-2xl font-black text-slate-800 dark:text-white tracking-tight">Financial Authorization</h2>
+                                <button onClick={() => setShowPaymentModal(false)} className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-gray-700 text-slate-400 dark:text-gray-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/30 transition-all flex items-center justify-center"><FaTimesCircle className="text-xl" /></button>
+                            </div>
 
-                        <div className="flex-1 overflow-y-auto p-6 md:p-8 pt-6 custom-scrollbar">
-                            <form onSubmit={handlePayment} className="space-y-6">
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Configure Amount (INR)</label>
-                                    <div className="relative">
-                                        <span className="absolute left-6 top-1/2 -translate-y-1/2 text-2xl font-black text-slate-300">₹</span>
-                                        <input
-                                            type="number"
-                                            value={paymentAmount}
-                                            onChange={(e) => setPaymentAmount(e.target.value)}
-                                            className="w-full pl-12 pr-6 py-5 bg-slate-50 rounded-2xl border-none font-black text-2xl text-slate-800 shadow-inner focus:ring-2 focus:ring-indigo-100 transition-all"
-                                            required
-                                        />
+                            <div className="flex-1 overflow-y-auto p-6 md:p-8 pt-6 custom-scrollbar">
+                                <form onSubmit={handlePayment} className="space-y-6">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-400 dark:text-gray-500 uppercase tracking-widest ml-1">Configure Amount (INR)</label>
+                                        <div className="relative">
+                                            <span className="absolute left-6 top-1/2 -translate-y-1/2 text-2xl font-black text-slate-300 dark:text-gray-600">₹</span>
+                                            <input
+                                                type="number"
+                                                value={paymentAmount}
+                                                onChange={(e) => setPaymentAmount(e.target.value)}
+                                                className="w-full pl-12 pr-6 py-5 bg-slate-50 dark:bg-gray-700 rounded-2xl border-none font-black text-2xl text-slate-800 dark:text-white shadow-inner focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900/30 transition-all"
+                                                required
+                                            />
+                                        </div>
                                     </div>
-                                </div>
 
-                                <div className="p-6 bg-indigo-50 rounded-[2rem] border border-indigo-100 flex items-center gap-6">
-                                    <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-indigo-600 text-2xl shadow-sm">
-                                        <FaCreditCard />
+                                    <div className="p-6 bg-indigo-50 dark:bg-indigo-900/20 rounded-[2rem] border border-indigo-100 dark:border-indigo-800/50 flex items-center gap-6">
+                                        <div className="w-16 h-16 bg-white dark:bg-gray-800 rounded-2xl flex items-center justify-center text-indigo-600 dark:text-indigo-400 text-2xl shadow-sm">
+                                            <FaCreditCard />
+                                        </div>
+                                        <div>
+                                            <h4 className="font-bold text-slate-800 dark:text-white text-sm">Secure Online Payment</h4>
+                                            <p className="text-[10px] text-slate-500 dark:text-gray-400 font-medium">Pay via UPI, Cards, or Netbanking using Razorpay gateway.</p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <h4 className="font-bold text-slate-800 text-sm">Secure Online Payment</h4>
-                                        <p className="text-[10px] text-slate-500 font-medium">Pay via UPI, Cards, or Netbanking using Razorpay gateway.</p>
-                                    </div>
-                                </div>
 
-                                <div className="space-y-4">
-                                    <div className="p-4 bg-slate-50 rounded-2xl flex items-center gap-3">
-                                        <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Gateway: Razorpay (Standard Protocol)</p>
+                                    <div className="space-y-4">
+                                        <div className="p-4 bg-slate-50 dark:bg-gray-700 rounded-2xl flex items-center gap-3">
+                                            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                                            <p className="text-[10px] font-bold text-slate-400 dark:text-gray-500 uppercase tracking-widest">Gateway: Razorpay (Standard Protocol)</p>
+                                        </div>
                                     </div>
-                                </div>
 
-                                <button
-                                    type="submit"
-                                    disabled={paymentLoading || !paymentAmount}
-                                    className={`w-full py-5 rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 shadow-xl ${paymentLoading ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-200 hover:-translate-y-1'}`}
-                                >
-                                    {paymentLoading ? (
-                                        <div className="w-5 h-5 border-2 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
-                                    ) : (
-                                        <>
-                                            <FaLock /> INITIALIZE SECURE PAYMENT
-                                        </>
-                                    )}
-                                </button>
-                                {!paymentLoading && (
                                     <button
-                                        type="button"
-                                        onClick={() => setShowPaymentModal(false)}
-                                        className="w-full py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-all"
+                                        type="submit"
+                                        disabled={paymentLoading || !paymentAmount}
+                                        className={`w-full py-5 rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 shadow-xl ${paymentLoading ? 'bg-slate-100 dark:bg-gray-700 text-slate-400 dark:text-gray-500 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-200 dark:shadow-none hover:-translate-y-1'}`}
                                     >
-                                        Return to Dashboard
+                                        {paymentLoading ? (
+                                            <div className="w-5 h-5 border-2 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+                                        ) : (
+                                            <>
+                                                <FaLock /> INITIALIZE SECURE PAYMENT
+                                            </>
+                                        )}
                                     </button>
-                                )}
-                                <p className="text-[9px] text-center text-slate-300 font-bold uppercase tracking-widest italic pt-2">Encrypted Secure Payment Gateway</p>
-                            </form>
+                                    {!paymentLoading && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPaymentModal(false)}
+                                            className="w-full py-4 text-[10px] font-black text-slate-400 dark:text-gray-500 uppercase tracking-widest hover:text-slate-600 dark:hover:text-slate-300 transition-all"
+                                        >
+                                            Return to Dashboard
+                                        </button>
+                                    )}
+                                    <p className="text-[9px] text-center text-slate-300 dark:text-gray-600 font-bold uppercase tracking-widest italic pt-2">Encrypted Secure Payment Gateway</p>
+                                </form>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Notice Detail Modal */}
-            {selectedNotice && (
-                <div
-                    onClick={() => setSelectedNotice(null)}
-                    className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300"
-                >
+            {
+                selectedNotice && (
                     <div
-                        onClick={e => e.stopPropagation()}
-                        className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden border border-slate-100 animate-in slide-in-from-bottom-6 duration-500"
+                        onClick={() => setSelectedNotice(null)}
+                        className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300"
                     >
-                        <div className="p-6 md:p-8 border-b border-slate-100 bg-gradient-to-br from-amber-50 to-orange-50 relative overflow-hidden">
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-amber-200/20 rounded-full -mr-16 -mt-16 blur-2xl"></div>
-                            <div className="relative z-10 flex items-start justify-between gap-4">
-                                <div className="flex items-start gap-4 flex-1">
-                                    <div className="w-12 h-12 bg-amber-500 rounded-2xl flex items-center justify-center text-white text-xl shrink-0 shadow-lg">
-                                        <FaBullhorn />
-                                    </div>
-                                    <div className="flex-1">
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <span className="px-3 py-1 bg-amber-500 text-white rounded-full text-[8px] font-black uppercase tracking-widest">Broadcast Notice</span>
+                        <div
+                            onClick={e => e.stopPropagation()}
+                            className="bg-white dark:bg-gray-800 w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden border border-slate-100 dark:border-gray-700 animate-in slide-in-from-bottom-6 duration-500"
+                        >
+                            <div className="p-6 md:p-8 border-b border-slate-100 dark:border-gray-700 bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-gray-800 dark:to-gray-900 relative overflow-hidden">
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
+                                <div className="relative z-10 flex items-start justify-between gap-4">
+                                    <div className="flex items-start gap-4 flex-1">
+                                        <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white text-xl shrink-0 shadow-lg">
+                                            <FaBullhorn />
                                         </div>
-                                        <h2 className="text-xl md:text-2xl font-black text-slate-800 tracking-tight">{selectedNotice.title}</h2>
-                                        {selectedNotice.createdAt && (
-                                            <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-2">
-                                                Published: {new Date(selectedNotice.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
-                                            </p>
-                                        )}
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <span className="px-3 py-1 bg-indigo-600 text-white rounded-full text-[8px] font-black uppercase tracking-widest">Broadcast Notice</span>
+                                            </div>
+                                            <h2 className="text-xl md:text-2xl font-black text-slate-800 dark:text-white tracking-tight">{selectedNotice.title}</h2>
+                                            {selectedNotice.createdAt && (
+                                                <p className="text-[9px] font-bold text-slate-500 dark:text-gray-400 uppercase tracking-widest mt-2">
+                                                    Published: {new Date(selectedNotice.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => setSelectedNotice(null)}
+                                        className="w-10 h-10 rounded-xl bg-white/80 dark:bg-gray-700 backdrop-blur-sm text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-white dark:hover:bg-gray-600 transition-all flex items-center justify-center shrink-0"
+                                    >
+                                        <FaTimesCircle className="text-xl" />
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="p-6 md:p-10 max-h-[60vh] overflow-y-auto">
+                                {/* Message Content */}
+                                <div className="mb-6">
+                                    <h3 className="text-sm font-black text-slate-400 dark:text-gray-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                        <FaEnvelopeOpenText className="text-indigo-600 dark:text-indigo-400" />
+                                        Notice Details
+                                    </h3>
+                                    <div className="bg-slate-50 dark:bg-gray-700/50 rounded-2xl p-6 border border-slate-100 dark:border-gray-700">
+                                        <p className="text-base text-slate-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
+                                            {selectedNotice.message || selectedNotice.content || selectedNotice.description || 'No message content available.'}
+                                        </p>
                                     </div>
                                 </div>
+
+                                {selectedNotice.targetRoles && selectedNotice.targetRoles.length > 0 && (
+                                    <div className="p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl border border-indigo-100 dark:border-indigo-800/50">
+                                        <p className="text-[9px] font-black text-slate-400 dark:text-gray-500 uppercase tracking-widest mb-2">Intended Recipients</p>
+                                        <div className="flex flex-wrap gap-2">
+                                            {selectedNotice.targetRoles.map((role, i) => (
+                                                <span key={i} className="px-3 py-1 bg-white dark:bg-gray-800 border border-indigo-200 dark:border-indigo-700 rounded-lg text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-tight">
+                                                    {role}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="p-6 md:p-8 border-t border-slate-100 dark:border-gray-700 bg-slate-50/50 dark:bg-gray-800/50">
                                 <button
                                     onClick={() => setSelectedNotice(null)}
-                                    className="w-10 h-10 rounded-xl bg-white/80 backdrop-blur-sm text-slate-400 hover:text-slate-800 hover:bg-white transition-all flex items-center justify-center shrink-0"
+                                    className="w-full py-4 bg-slate-900 dark:bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-600 dark:hover:bg-indigo-700 transition-all active:scale-95"
                                 >
-                                    <FaTimesCircle className="text-xl" />
+                                    Close Notice
                                 </button>
                             </div>
                         </div>
-
-                        <div className="p-6 md:p-10 max-h-[60vh] overflow-y-auto">
-                            {/* Message Content */}
-                            <div className="mb-6">
-                                <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                                    <FaEnvelopeOpenText className="text-amber-500" />
-                                    Notice Details
-                                </h3>
-                                <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100">
-                                    <p className="text-base text-slate-700 leading-relaxed whitespace-pre-wrap">
-                                        {selectedNotice.message || selectedNotice.content || selectedNotice.description || 'No message content available.'}
-                                    </p>
-                                </div>
-                            </div>
-
-                            {selectedNotice.targetRoles && selectedNotice.targetRoles.length > 0 && (
-                                <div className="p-4 bg-indigo-50 rounded-2xl border border-indigo-100">
-                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Intended Recipients</p>
-                                    <div className="flex flex-wrap gap-2">
-                                        {selectedNotice.targetRoles.map((role, i) => (
-                                            <span key={i} className="px-3 py-1 bg-white border border-indigo-200 rounded-lg text-[10px] font-bold text-indigo-600 uppercase tracking-tight">
-                                                {role}
-                                            </span>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="p-6 md:p-8 border-t border-slate-100 bg-slate-50/50">
-                            <button
-                                onClick={() => setSelectedNotice(null)}
-                                className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-600 transition-all active:scale-95"
-                            >
-                                Close Notice
-                            </button>
-                        </div>
                     </div>
-                </div>
-            )}
+                )}
         </div>
     );
 };

@@ -11,15 +11,28 @@ const Razorpay = require('razorpay');
 const crypto = require('crypto');
 
 // Initialize Razorpay
-const razorpay = new Razorpay({
-    key_id: process.env.RAZORPAY_KEY_ID,
-    key_secret: process.env.RAZORPAY_KEY_SECRET
-});
+let razorpay;
+if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
+    try {
+        razorpay = new Razorpay({
+            key_id: process.env.RAZORPAY_KEY_ID,
+            key_secret: process.env.RAZORPAY_KEY_SECRET
+        });
+        console.log('Razorpay initialized successfully');
+    } catch (err) {
+        console.error('Razorpay initialization failed:', err);
+    }
+} else {
+    console.warn('RAZORPAY_KEY_ID or RAZORPAY_KEY_SECRET missing in environment. Online payments will be disabled.');
+}
 
 // Create Razorpay Order
 router.post('/razorpay/create-order', auth, roleAuth('parent'), async (req, res) => {
     const { amount, studentId } = req.body;
     try {
+        if (!razorpay) {
+            return res.status(503).json({ message: 'Online payment system is currently unavailable' });
+        }
         const options = {
             amount: amount * 100, // amount in paise
             currency: 'INR',
@@ -40,6 +53,9 @@ router.post('/razorpay/verify', auth, roleAuth('parent'), async (req, res) => {
     const { orderId, paymentId, signature, studentId, amount } = req.body;
 
     try {
+        if (!razorpay) {
+            return res.status(503).json({ message: 'Online payment system is currently unavailable' });
+        }
         // Verify Signature
         const generated_signature = crypto.createHmac('sha256', process.env.RAZORPAY_KEY_SECRET || 'YOUR_RAZORPAY_KEY_SECRET')
             .update(orderId + "|" + paymentId)
