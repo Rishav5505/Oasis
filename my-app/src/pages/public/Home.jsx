@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
 import Footer from '../../components/Footer';
@@ -45,6 +45,26 @@ const Home = () => {
     }, 5000);
     return () => clearInterval(timer);
   }, []);
+
+  const testimonialRef = useRef(null);
+  const [isPaused, setIsPaused] = useState(false);
+
+  useEffect(() => {
+    if (!isPaused && testimonials.length > 0) {
+      const interval = setInterval(() => {
+        if (testimonialRef.current) {
+          const { scrollLeft, scrollWidth, clientWidth } = testimonialRef.current;
+          // If we reach the end, go back to start, else scroll right
+          if (scrollLeft + clientWidth >= scrollWidth - 10) {
+            testimonialRef.current.scrollTo({ left: 0, behavior: 'smooth' });
+          } else {
+            testimonialRef.current.scrollBy({ left: window.innerWidth < 768 ? window.innerWidth * 0.85 : 400, behavior: 'smooth' });
+          }
+        }
+      }, 3500);
+      return () => clearInterval(interval);
+    }
+  }, [isPaused, testimonials]);
 
   useEffect(() => {
     // Fetch faculty data
@@ -370,37 +390,45 @@ const Home = () => {
             <p className="text-gray-600 text-lg">Simple steps to start your JEE journey</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 max-w-6xl mx-auto">
-            <div className="text-center">
-              <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white text-3xl font-bold mx-auto mb-4">
+          <div className="grid grid-cols-2 gap-3 md:gap-6 max-w-4xl mx-auto">
+            <div className="flex flex-col md:flex-row items-center md:items-start text-center md:text-left gap-3 md:gap-6 p-4 md:p-6 bg-gray-50 rounded-2xl hover:bg-white hover:shadow-xl transition-all duration-300 border border-transparent hover:border-indigo-100">
+              <div className="w-10 h-10 md:w-14 md:h-14 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center text-white text-base md:text-xl font-black shrink-0 shadow-lg">
                 1
               </div>
-              <h3 className="text-xl font-bold text-gray-800 mb-3">Book Demo</h3>
-              <p className="text-gray-600">Fill the enquiry form and schedule your free demo class</p>
+              <div>
+                <h3 className="text-sm md:text-lg font-bold text-gray-800 mb-1">Book Demo</h3>
+                <p className="text-gray-500 text-[10px] md:text-sm leading-relaxed">Fill the enquiry form and schedule your free demo class</p>
+              </div>
             </div>
 
-            <div className="text-center">
-              <div className="w-20 h-20 bg-gradient-to-r from-green-500 to-green-600 rounded-full flex items-center justify-center text-white text-3xl font-bold mx-auto mb-4">
+            <div className="flex flex-col md:flex-row items-center md:items-start text-center md:text-left gap-3 md:gap-6 p-4 md:p-6 bg-gray-50 rounded-2xl hover:bg-white hover:shadow-xl transition-all duration-300 border border-transparent hover:border-green-100">
+              <div className="w-10 h-10 md:w-14 md:h-14 bg-gradient-to-r from-green-500 to-green-600 rounded-xl flex items-center justify-center text-white text-base md:text-xl font-black shrink-0 shadow-lg">
                 2
               </div>
-              <h3 className="text-xl font-bold text-gray-800 mb-3">Attend Demo</h3>
-              <p className="text-gray-600">Experience our teaching methodology and meet our faculty</p>
+              <div>
+                <h3 className="text-sm md:text-lg font-bold text-gray-800 mb-1">Attend Demo</h3>
+                <p className="text-gray-500 text-[10px] md:text-sm leading-relaxed">Experience our teaching methodology and meet our faculty</p>
+              </div>
             </div>
 
-            <div className="text-center">
-              <div className="w-20 h-20 bg-gradient-to-r from-purple-500 to-purple-600 rounded-full flex items-center justify-center text-white text-3xl font-bold mx-auto mb-4">
+            <div className="flex flex-col md:flex-row items-center md:items-start text-center md:text-left gap-3 md:gap-6 p-4 md:p-6 bg-gray-50 rounded-2xl hover:bg-white hover:shadow-xl transition-all duration-300 border border-transparent hover:border-purple-100">
+              <div className="w-10 h-10 md:w-14 md:h-14 bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl flex items-center justify-center text-white text-base md:text-xl font-black shrink-0 shadow-lg">
                 3
               </div>
-              <h3 className="text-xl font-bold text-gray-800 mb-3">Complete Enrollment</h3>
-              <p className="text-gray-600">Choose your batch and complete the admission process</p>
+              <div>
+                <h3 className="text-sm md:text-lg font-bold text-gray-800 mb-1">Admission</h3>
+                <p className="text-gray-500 text-[10px] md:text-sm leading-relaxed">Choose your batch and complete the process</p>
+              </div>
             </div>
 
-            <div className="text-center">
-              <div className="w-20 h-20 bg-gradient-to-r from-orange-500 to-orange-600 rounded-full flex items-center justify-center text-white text-3xl font-bold mx-auto mb-4">
+            <div className="flex flex-col md:flex-row items-center md:items-start text-center md:text-left gap-3 md:gap-6 p-4 md:p-6 bg-gray-50 rounded-2xl hover:bg-white hover:shadow-xl transition-all duration-300 border border-transparent hover:border-orange-100">
+              <div className="w-10 h-10 md:w-14 md:h-14 bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl flex items-center justify-center text-white text-base md:text-xl font-black shrink-0 shadow-lg">
                 4
               </div>
-              <h3 className="text-xl font-bold text-gray-800 mb-3">Achieve Success</h3>
-              <p className="text-gray-600">Begin your personalized learning journey to crack JEE</p>
+              <div>
+                <h3 className="text-sm md:text-lg font-bold text-gray-800 mb-1">Success</h3>
+                <p className="text-gray-500 text-[10px] md:text-sm leading-relaxed">Begin your personalized journey to crack JEE</p>
+              </div>
             </div>
           </div>
         </div>
@@ -415,19 +443,37 @@ const Home = () => {
               <p className="text-gray-600 text-lg">Real experiences from satisfied parents</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+            <div
+              ref={testimonialRef}
+              onMouseEnter={() => setIsPaused(true)}
+              onMouseLeave={() => setIsPaused(false)}
+              onTouchStart={() => setIsPaused(true)}
+              onTouchEnd={() => setIsPaused(false)}
+              className="flex overflow-x-auto snap-x snap-mandatory gap-6 pb-8 no-scrollbar -mx-4 px-4 md:mx-0 md:px-0 scroll-smooth"
+            >
               {testimonials.map(testimonial => (
-                <div key={testimonial.id} className="bg-white rounded-xl shadow-lg p-8 hover:shadow-2xl transition-shadow">
-                  <div className="flex mb-4">
+                <div
+                  key={testimonial.id}
+                  className="snap-center shrink-0 w-[85vw] md:w-[380px] bg-white rounded-3xl shadow-xl p-8 border border-white/50 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 relative group"
+                >
+                  <div className="absolute top-6 right-8 text-4xl text-indigo-100 opacity-50 group-hover:text-indigo-200 transition-colors">
+                    "
+                  </div>
+                  <div className="flex mb-6">
                     {[...Array(testimonial.rating)].map((_, i) => (
-                      <span key={i} className="text-yellow-400 text-xl">⭐</span>
+                      <span key={i} className="text-yellow-400 text-lg">⭐</span>
                     ))}
                   </div>
-                  <p className="text-gray-600 italic mb-6">"{testimonial.quote}"</p>
-                  <div className="border-t pt-4">
-                    <p className="font-bold text-gray-800">{testimonial.parentName}</p>
-                    <p className="text-sm text-gray-600 mt-1">Parent of {testimonial.studentName}</p>
-                    <p className="text-sm text-indigo-600 font-semibold mt-1">{testimonial.achievement}</p>
+                  <p className="text-gray-700 italic mb-8 leading-relaxed text-lg">"{testimonial.quote}"</p>
+                  <div className="flex items-center gap-4 border-t pt-6 border-gray-50">
+                    <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-xl shadow-md">
+                      {testimonial.parentName[0]}
+                    </div>
+                    <div>
+                      <p className="font-black text-gray-900 leading-none mb-1">{testimonial.parentName}</p>
+                      <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">Parent of {testimonial.studentName}</p>
+                      <p className="text-xs text-indigo-600 font-bold mt-1 bg-indigo-50 inline-block px-2 py-0.5 rounded-full">{testimonial.achievement}</p>
+                    </div>
                   </div>
                 </div>
               ))}

@@ -419,13 +419,48 @@ const AdminDashboard = () => {
 
   const handleNoticeSubmit = async (e) => {
     e.preventDefault();
+
+    // Validation
+    if (!newNotice.title || !newNotice.content) {
+      alert('Please fill in both title and message fields');
+      return;
+    }
+
+    if (!newNotice.targetRoles || newNotice.targetRoles.length === 0) {
+      alert('Please select at least one target audience');
+      return;
+    }
+
     try {
-      await axios.post('http://localhost:5002/api/notices', newNotice);
+      const token = sessionStorage.getItem('token');
+      if (!token) {
+        alert('Session expired. Please login again.');
+        window.location.href = '/login';
+        return;
+      }
+
+      const headers = { Authorization: `Bearer ${token}` };
+      const response = await axios.post('http://localhost:5002/api/notices', newNotice, { headers });
+
       alert('Notice published successfully!');
       setShowNoticeModal(false);
       setNewNotice({ title: '', content: '', targetRoles: ['student', 'parent'] });
+
+      // Optionally refresh to show new notice
+      window.location.reload();
     } catch (err) {
-      alert('Failed to publish notice');
+      console.error('Notice publish error:', err);
+
+      // Check if it's an authentication error
+      if (err.response?.status === 401) {
+        alert('Your session has expired. Please login again.');
+        sessionStorage.removeItem('token');
+        window.location.href = '/login';
+        return;
+      }
+
+      const errorMsg = err.response?.data?.message || err.message || 'Failed to publish notice';
+      alert(`Error: ${errorMsg}`);
     }
   };
 
@@ -572,11 +607,11 @@ const AdminDashboard = () => {
 
       {/* Sidebar - Pro Layout */}
       {/* Sidebar - Pro Layout */}
-      <aside className={`w-72 bg-gradient-to-b from-[#0f172a] via-[#1e1b4b] to-[#312e81] text-white flex-shrink-0 flex flex-col shadow-2xl z-30 fixed h-full transition-transform duration-300 lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:static`}>
+      <aside className={`w-72 bg-gradient-to-b from-[#0f172a] via-[#1e1b4b] to-[#312e81] text-white flex-shrink-0 flex flex-col shadow-2xl z-30 fixed h-full transition-all duration-300 lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0 opacity-100 visible' : '-translate-x-full opacity-0 invisible'} lg:static lg:opacity-100 lg:visible`}>
         <div className="p-6 flex items-center justify-between border-b border-indigo-800/50">
           {/* Replaced Logo Section */}
           <div className="w-full flex justify-center">
-            <img src={oasisFullLogo} alt="Oasis Full Logo" className="h-16 object-contain brightness-110 drop-shadow-lg" />
+            <img src={oasisFullLogo} alt="Oasis Full Logo" className="h-12 md:h-16 object-contain brightness-110 drop-shadow-lg" />
           </div>
           <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden p-2 text-indigo-300 hover:text-white absolute right-4 top-6">
             <FaTimesCircle className="text-2xl" />
@@ -663,7 +698,7 @@ const AdminDashboard = () => {
         </header>
 
         {/* Dynamic Content */}
-        <div className="flex-1 overflow-y-auto p-10 space-y-10 scroll-smooth">
+        <div className="flex-1 overflow-y-auto p-4 md:p-10 space-y-6 md:space-y-10 scroll-smooth">
           {activeTab === 'overview' && (
             <>
               {/* Vibrant Welcome Banner */}
@@ -869,24 +904,24 @@ const AdminDashboard = () => {
 
           {activeTab === 'students' && (
             <div className="space-y-8 animate-in fade-in duration-500">
-              <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
                 <div>
-                  <h2 className="text-3xl font-black text-gray-900">Student Directory</h2>
-                  <p className="text-gray-400 font-bold">Manage and visualize student footprints</p>
+                  <h2 className="text-2xl md:text-3xl font-black text-gray-900">Student Directory</h2>
+                  <p className="text-gray-400 font-bold text-sm">Manage and visualize student footprints</p>
                 </div>
-                <div className="flex gap-3">
-                  <div className="relative">
+                <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                  <div className="relative w-full sm:w-64">
                     <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" />
                     <input
                       type="text"
                       placeholder="Search student..."
-                      className="pl-12 pr-6 py-3.5 bg-white border border-gray-100 rounded-2xl shadow-sm focus:ring-2 focus:ring-indigo-100 transition-all text-sm font-semibold"
+                      className="w-full pl-12 pr-6 py-3.5 bg-white border border-gray-100 rounded-2xl shadow-sm focus:ring-2 focus:ring-indigo-100 transition-all text-sm font-semibold"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                     />
                   </div>
                   <select
-                    className="px-6 py-3.5 bg-white border border-gray-100 rounded-2xl shadow-sm font-bold text-sm text-gray-600 focus:outline-none"
+                    className="w-full sm:w-auto px-6 py-3.5 bg-white border border-gray-100 rounded-2xl shadow-sm font-bold text-sm text-gray-600 focus:outline-none"
                     onChange={(e) => setFilterClass(e.target.value)}
                   >
                     <option value="all">Everywhere</option>
@@ -895,15 +930,15 @@ const AdminDashboard = () => {
                 </div>
               </div>
 
-              <div className="bg-white rounded-[3rem] border border-gray-100 shadow-sm overflow-hidden p-2">
-                <table className="w-full text-left border-collapse">
+              <div className="bg-white rounded-[2rem] md:rounded-[3rem] border border-gray-100 shadow-sm overflow-x-auto p-2">
+                <table className="w-full text-left border-collapse min-w-[700px]">
                   <thead>
                     <tr className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
-                      <th className="px-8 py-6">Identity</th>
-                      <th className="px-8 py-6">Classification</th>
-                      <th className="px-8 py-6">Linked Guardian</th>
-                      <th className="px-8 py-6">Engagement</th>
-                      <th className="px-8 py-6 text-right">Interactions</th>
+                      <th className="px-6 md:px-8 py-6">Identity</th>
+                      <th className="px-6 md:px-8 py-6">Classification</th>
+                      <th className="px-6 md:px-8 py-6">Linked Guardian</th>
+                      <th className="px-6 md:px-8 py-6">Engagement</th>
+                      <th className="px-6 md:px-8 py-6 text-right">Interactions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
@@ -989,8 +1024,8 @@ const AdminDashboard = () => {
                   )}
 
                   {/* Link Parent Form */}
-                  <div className="bg-white rounded-[3rem] p-10 border border-gray-100 shadow-xl">
-                    <h2 className="text-2xl font-black text-gray-900 mb-8 flex items-center gap-3">
+                  <div className="bg-white rounded-[2rem] md:rounded-[3rem] p-6 md:p-10 border border-gray-100 shadow-xl">
+                    <h2 className="text-xl md:text-2xl font-black text-gray-900 mb-8 flex items-center gap-3">
                       <FaUsers className="text-indigo-500" /> Link Parent Entity
                     </h2>
                     <form onSubmit={handleLinkParent} className="space-y-6">
@@ -1295,13 +1330,13 @@ const AdminDashboard = () => {
           )}
 
           {activeTab === 'teachers' && (
-            <div className="space-y-10 animate-in fade-in duration-500">
-              <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="space-y-10 animate-in fade-in duration-500 pb-20">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
                 <div>
-                  <h2 className="text-3xl font-black text-gray-900">Faculty Management</h2>
-                  <p className="text-gray-400 font-bold">Track and onboard teaching staff</p>
+                  <h2 className="text-2xl md:text-3xl font-black text-gray-900">Faculty Management</h2>
+                  <p className="text-gray-400 font-bold text-sm">Track and onboard teaching staff</p>
                 </div>
-                <button className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-3.5 rounded-2xl font-black text-sm shadow-xl shadow-indigo-100 hover:scale-105 active:scale-95 transition-all">
+                <button className="w-full sm:w-auto flex items-center justify-center gap-2 bg-indigo-600 text-white px-6 py-3.5 rounded-2xl font-black text-sm shadow-xl shadow-indigo-100 hover:scale-105 active:scale-95 transition-all">
                   <FaPlus /> ONBOARD TEACHER
                 </button>
               </div>
@@ -1385,14 +1420,14 @@ const AdminDashboard = () => {
                 </form>
               </div>
 
-              <div className="bg-white rounded-[3rem] border border-gray-100 shadow-sm overflow-hidden p-2">
-                <table className="w-full text-left border-collapse">
+              <div className="bg-white rounded-[2rem] md:rounded-[3rem] border border-gray-100 shadow-sm overflow-x-auto p-2">
+                <table className="w-full text-left border-collapse min-w-[800px]">
                   <thead>
                     <tr className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
-                      <th className="px-8 py-6">Faculty Member</th>
-                      <th className="px-8 py-6">Expertise</th>
-                      <th className="px-8 py-6">Status</th>
-                      <th className="px-8 py-6 text-right">Actions</th>
+                      <th className="px-6 md:px-8 py-6">Faculty Member</th>
+                      <th className="px-6 md:px-8 py-6">Expertise</th>
+                      <th className="px-6 md:px-8 py-6">Status</th>
+                      <th className="px-6 md:px-8 py-6 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
@@ -1458,12 +1493,12 @@ const AdminDashboard = () => {
                 <p className="text-gray-400 font-bold">Broadcast updates to your entire academic community</p>
               </div>
 
-              <div className="bg-white rounded-[3rem] p-12 border border-gray-100 shadow-2xl space-y-8">
+              <div className="bg-white rounded-[2rem] md:rounded-[3rem] p-6 md:p-12 border border-gray-100 shadow-2xl space-y-8">
                 <form onSubmit={handleNoticeSubmit}>
                   <div className="space-y-6">
                     <div>
                       <label className="text-xs font-black uppercase text-gray-400 tracking-widest mb-3 block">Target Distribution</label>
-                      <div className="flex gap-4">
+                      <div className="flex flex-wrap gap-3 md:gap-4">
                         {['student', 'parent', 'teacher'].map(role => (
                           <button
                             key={role}
@@ -1474,7 +1509,7 @@ const AdminDashboard = () => {
                                 : [...newNotice.targetRoles, role];
                               setNewNotice({ ...newNotice, targetRoles: roles });
                             }}
-                            className={`px-6 py-2.5 rounded-2xl text-xs font-black transition-all border ${newNotice.targetRoles.includes(role)
+                            className={`px-4 md:px-6 py-2.5 rounded-2xl text-[10px] md:text-xs font-black transition-all border ${newNotice.targetRoles.includes(role)
                               ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-100'
                               : 'bg-white text-gray-400 border-gray-100 hover:border-indigo-100'
                               }`}

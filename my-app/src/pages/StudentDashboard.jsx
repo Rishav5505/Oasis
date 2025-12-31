@@ -14,6 +14,9 @@ const StudentDashboard = () => {
   const [fees, setFees] = useState({});
   const [materials, setMaterials] = useState([]);
   const [notices, setNotices] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [selectedNotice, setSelectedNotice] = useState(null);
   const [exams, setExams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [availableClasses, setAvailableClasses] = useState([]);
@@ -91,6 +94,7 @@ const StudentDashboard = () => {
         axios.get(`http://localhost:5002/api/fees/student/${user.id}`, { headers }),
         axios.get('http://localhost:5002/api/study-material', { headers }),
         axios.get('http://localhost:5002/api/notices', { headers }),
+        axios.get('http://localhost:5002/api/notifications', { headers }),
       ];
 
       if (studentData?.classId) {
@@ -107,9 +111,10 @@ const StudentDashboard = () => {
       setFees(getData(2, {}));
       setMaterials(getData(3, []));
       setNotices(getData(4, []));
+      setNotifications(getData(5, []));
 
-      if (studentData?.classId && results[5]) {
-        setExams(results[5].status === 'fulfilled' ? results[5].value.data : []);
+      if (studentData?.classId && results[6]) {
+        setExams(results[6].status === 'fulfilled' ? results[6].value.data : []);
       } else {
         setExams([]);
       }
@@ -328,9 +333,14 @@ const StudentDashboard = () => {
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              <button className="relative p-2 text-gray-400 hover:text-gray-600 transition-colors">
+              <button
+                onClick={() => setShowNotifications(!showNotifications)}
+                className="relative p-2 text-gray-400 hover:text-blue-600 transition-colors bg-white rounded-xl border border-transparent hover:border-gray-100"
+              >
                 <FaBell className="text-xl" />
-                <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></span>
+                {(notifications.some(n => !n.read) || notices.some(n => new Date(n.createdAt) > new Date(Date.now() - 86400000))) && (
+                  <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white animate-pulse"></span>
+                )}
               </button>
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-semibold overflow-hidden">
@@ -892,13 +902,20 @@ const StudentDashboard = () => {
               </div>
 
               <div className="space-y-4">
-                {notices.slice(0, 3).map(notice => (
-                  <div key={notice._id} className="p-4 bg-orange-50 rounded-lg border border-orange-200">
-                    <h3 className="font-semibold text-gray-900 mb-2">{notice.title}</h3>
-                    <p className="text-sm text-gray-700 mb-3 line-clamp-2">{notice.content}</p>
-                    <div className="flex items-center text-xs text-gray-500">
+                {[...notices].reverse().slice(0, 2).map(notice => (
+                  <div
+                    key={notice._id}
+                    onClick={() => setSelectedNotice(notice)}
+                    className="p-4 bg-orange-50 rounded-lg border border-orange-200 cursor-pointer hover:bg-orange-100 transition-all group"
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <h3 className="font-semibold text-gray-900 group-hover:text-orange-700 transition-colors">{notice.title}</h3>
+                      {new Date(notice.createdAt) > new Date(Date.now() - 604800000) && <span className="px-2 py-0.5 bg-red-500 text-white text-[10px] font-bold uppercase rounded-full animate-pulse">Live</span>}
+                    </div>
+                    <p className="text-sm text-gray-700 mb-3 line-clamp-2">{notice.content || notice.description}</p>
+                    <div className="flex items-center text-xs text-gray-500 font-medium uppercase tracking-wide">
                       <FaClock className="mr-1" />
-                      {new Date(notice.createdAt).toLocaleDateString()}
+                      {new Date(notice.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                     </div>
                   </div>
                 )) || (
@@ -986,6 +1003,127 @@ const StudentDashboard = () => {
               If your class isn't listed, please contact<br />
               the administration office.
             </p>
+          </div>
+        </div>
+      )}
+      {/* Notification Drawer */}
+      {showNotifications && (
+        <>
+          <div
+            className="fixed inset-0 z-[60] bg-slate-900/20 backdrop-blur-sm"
+            onClick={() => setShowNotifications(false)}
+          ></div>
+          <div className="fixed top-0 right-0 h-full w-full max-w-sm bg-white shadow-2xl z-[70] transform transition-transform duration-300 overflow-y-auto border-l border-slate-100">
+            <div className="p-6 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white/95 backdrop-blur-md z-10">
+              <div>
+                <h2 className="text-lg font-black text-gray-800 tracking-tight">Notifications</h2>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Recent Alerts & Updates</p>
+              </div>
+              <button
+                onClick={() => setShowNotifications(false)}
+                className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors"
+              >
+                <FaTimes />
+              </button>
+            </div>
+
+            <div className="p-4 space-y-4">
+              {/* Section 1: Live Notices */}
+              <div className="mb-6">
+                <h3 className="text-[10px] font-black text-blue-500 uppercase tracking-widest mb-3 px-2">Official Announcements</h3>
+                {notices.length > 0 ? (
+                  <div className="space-y-3">
+                    {notices.slice(0, 5).map(notice => (
+                      <div
+                        key={notice._id}
+                        onClick={() => { setSelectedNotice(notice); setShowNotifications(false); }}
+                        className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl border border-blue-100 cursor-pointer hover:shadow-md transition-all active:scale-95"
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center text-white text-xs shrink-0 shadow-sm"><FaBullhorn /></div>
+                          <div>
+                            <h4 className="text-sm font-bold text-gray-900 leading-tight mb-1">{notice.title}</h4>
+                            <p className="text-xs text-blue-700/80 line-clamp-2 leading-relaxed">{notice.content || notice.description}</p>
+                            <p className="text-[10px] font-bold text-blue-400 uppercase tracking-wide mt-2">{new Date(notice.createdAt).toLocaleDateString()}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-center text-xs text-gray-400 py-4 italic">No active announcements</p>
+                )}
+              </div>
+
+              {/* Section 2: Personal Notifications */}
+              <div>
+                <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3 px-2">Personal Alerts</h3>
+                {notifications.length > 0 ? (
+                  <div className="space-y-3">
+                    {notifications.map((notif, idx) => (
+                      <div key={idx} className={`p-4 rounded-2xl border transition-all ${notif.read ? 'bg-white border-gray-100' : 'bg-red-50 border-red-100'}`}>
+                        <div className="flex items-start gap-3">
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs shrink-0 ${notif.read ? 'bg-gray-100 text-gray-500' : 'bg-red-500 text-white shadow-sm'}`}>
+                            <FaBell />
+                          </div>
+                          <div>
+                            <h4 className="text-sm font-bold text-gray-900 leading-tight mb-1">{notif.title || 'Notification'}</h4>
+                            <p className="text-xs text-gray-600 leading-relaxed">{notif.message || notif.content || 'New update received'}</p>
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mt-2">{(notif.createdAt || notif.date) ? new Date(notif.createdAt || notif.date).toLocaleDateString() : 'Just Now'}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-10 opacity-50">
+                    <FaBell className="text-4xl text-gray-300 mx-auto mb-2" />
+                    <p className="text-xs font-bold text-gray-400 uppercase">No new notifications</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Notice Detail Modal */}
+      {selectedNotice && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300"
+          onClick={() => setSelectedNotice(null)}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            className="bg-white w-full max-w-2xl rounded-[2rem] shadow-2xl overflow-hidden border border-gray-100 animate-in zoom-in-95 duration-300"
+          >
+            <div className="p-8 bg-gradient-to-r from-orange-500 to-amber-500 text-white relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-20 -mt-20 blur-3xl"></div>
+              <h2 className="text-2xl font-black tracking-tight relative z-10 mb-2">{selectedNotice.title}</h2>
+              <div className="flex items-center gap-3 relative z-10">
+                <span className="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border border-white/20">Official Notice</span>
+                <span className="text-orange-100 text-xs font-medium">{new Date(selectedNotice.createdAt).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+              </div>
+              <button
+                onClick={() => setSelectedNotice(null)}
+                className="absolute top-6 right-6 w-10 h-10 bg-white/20 hover:bg-white/30 backdrop-blur-md rounded-full flex items-center justify-center text-white transition-all"
+              >
+                <FaTimes />
+              </button>
+            </div>
+            <div className="p-8 max-h-[60vh] overflow-y-auto">
+              <p className="text-gray-700 leading-relaxed whitespace-pre-wrap text-lg">
+                {selectedNotice.content || selectedNotice.description}
+              </p>
+            </div>
+            <div className="p-6 bg-gray-50 border-t border-gray-100 text-right">
+              <button
+                onClick={() => setSelectedNotice(null)}
+                className="px-8 py-3 bg-gray-900 text-white rounded-xl font-bold text-sm uppercase tracking-widest hover:bg-gray-800 transition-all shadow-lg hover:shadow-xl active:scale-95"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
