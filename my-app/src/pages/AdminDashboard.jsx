@@ -1358,50 +1358,58 @@ const AdminDashboard = () => {
                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-4">Contact Number</label>
                     <input type="tel" placeholder="+91 9876543210" value={teacherForm.phone} onChange={(e) => setTeacherForm({ ...teacherForm, phone: e.target.value })} className="w-full p-4 bg-gray-50 border border-transparent rounded-2xl focus:bg-white focus:border-indigo-100 focus:outline-none font-bold text-gray-700 transition-all" required />
                   </div>
-                  <div className="space-y-4 col-span-1 md:col-span-2 lg:col-span-3">
+                  <div className="space-y-2 col-span-1 md:col-span-2 lg:col-span-3">
                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-4">Assign Subjects</label>
-                    <div className="flex flex-wrap gap-3 p-6 bg-gray-50 rounded-[2rem] border border-transparent">
-                      {availableSubjects.map(sub => (
-                        <label key={sub._id} className="flex items-center gap-3 bg-white px-4 py-2.5 rounded-xl cursor-pointer hover:shadow-md transition-all group">
-                          <input
-                            type="checkbox"
-                            className="w-5 h-5 rounded-lg border-2 border-gray-100 text-indigo-600 focus:ring-0 transition-all checked:bg-indigo-600"
-                            checked={teacherForm.subjects.split(',').filter(x => x).includes(sub.name)}
-                            onChange={(e) => {
-                              const current = teacherForm.subjects.split(',').filter(x => x && x.trim());
-                              if (e.target.checked) {
-                                setTeacherForm({ ...teacherForm, subjects: [...current, sub.name].join(',') });
-                              } else {
-                                setTeacherForm({ ...teacherForm, subjects: current.filter(x => x !== sub.name).join(',') });
-                              }
-                            }}
-                          />
-                          <span className="text-sm font-black text-gray-600 group-hover:text-indigo-600 transition-colors">{sub.name}</span>
-                        </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Mathematics, Physics (Comma separated)"
+                      value={teacherForm.subjects}
+                      onChange={(e) => setTeacherForm({ ...teacherForm, subjects: e.target.value })}
+                      className="w-full p-4 bg-gray-50 border border-transparent rounded-2xl focus:bg-white focus:border-indigo-100 focus:outline-none font-bold text-gray-700 transition-all"
+                    />
+                    <div className="flex flex-wrap gap-2 mt-2 ml-4">
+                      {availableSubjects.slice(0, 5).map(sub => (
+                        <button
+                          key={sub._id}
+                          type="button"
+                          onClick={() => {
+                            const current = teacherForm.subjects.split(',').map(s => s.trim()).filter(x => x);
+                            if (!current.includes(sub.name)) {
+                              setTeacherForm({ ...teacherForm, subjects: [...current, sub.name].join(', ') });
+                            }
+                          }}
+                          className="px-3 py-1 bg-indigo-50 text-indigo-600 rounded-lg text-[10px] font-bold hover:bg-indigo-100 transition-colors"
+                        >
+                          + {sub.name}
+                        </button>
                       ))}
                     </div>
                   </div>
 
-                  <div className="space-y-4 col-span-1 md:col-span-2 lg:col-span-3">
+                  <div className="space-y-2 col-span-1 md:col-span-2 lg:col-span-3">
                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-4">Assign Classes</label>
-                    <div className="flex flex-wrap gap-3 p-6 bg-gray-50 rounded-[2rem] border border-transparent">
-                      {availableClasses.map(cls => (
-                        <label key={cls._id} className="flex items-center gap-3 bg-white px-4 py-2.5 rounded-xl cursor-pointer hover:shadow-md transition-all group">
-                          <input
-                            type="checkbox"
-                            className="w-5 h-5 rounded-lg border-2 border-gray-100 text-indigo-600 focus:ring-0 transition-all checked:bg-indigo-600"
-                            checked={teacherForm.classes.split(',').filter(x => x).includes(cls.name)}
-                            onChange={(e) => {
-                              const current = teacherForm.classes.split(',').filter(x => x && x.trim());
-                              if (e.target.checked) {
-                                setTeacherForm({ ...teacherForm, classes: [...current, cls.name].join(',') });
-                              } else {
-                                setTeacherForm({ ...teacherForm, classes: current.filter(x => x !== cls.name).join(',') });
-                              }
-                            }}
-                          />
-                          <span className="text-sm font-black text-gray-600 group-hover:text-indigo-600 transition-colors">{cls.name}</span>
-                        </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Class 10, Class 12 (Comma separated)"
+                      value={teacherForm.classes}
+                      onChange={(e) => setTeacherForm({ ...teacherForm, classes: e.target.value })}
+                      className="w-full p-4 bg-gray-50 border border-transparent rounded-2xl focus:bg-white focus:border-indigo-100 focus:outline-none font-bold text-gray-700 transition-all"
+                    />
+                    <div className="flex flex-wrap gap-2 mt-2 ml-4">
+                      {availableClasses.slice(0, 5).map(cls => (
+                        <button
+                          key={cls._id}
+                          type="button"
+                          onClick={() => {
+                            const current = teacherForm.classes.split(',').map(s => s.trim()).filter(x => x);
+                            if (!current.includes(cls.name)) {
+                              setTeacherForm({ ...teacherForm, classes: [...current, cls.name].join(', ') });
+                            }
+                          }}
+                          className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-[10px] font-bold hover:bg-emerald-100 transition-colors"
+                        >
+                          + {cls.name}
+                        </button>
                       ))}
                     </div>
                   </div>
@@ -1608,50 +1616,58 @@ const AdminDashboard = () => {
                 </button>
               </div>
               <form onSubmit={handleUpdateTeacherAssignments} className="p-10 space-y-8">
-                <div className="space-y-4">
+                <div className="space-y-2">
                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-4">Assign Subjects</label>
-                  <div className="flex flex-wrap gap-2 p-4 bg-gray-50 rounded-2xl">
-                    {availableSubjects.map(sub => (
-                      <label key={sub._id} className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl cursor-pointer border border-transparent hover:border-indigo-100 transition-all">
-                        <input
-                          type="checkbox"
-                          className="w-4 h-4 rounded text-indigo-600 focus:ring-0"
-                          checked={assignForm.subjects.split(',').filter(x => x).map(x => x.trim()).includes(sub.name)}
-                          onChange={(e) => {
-                            const current = assignForm.subjects.split(',').filter(x => x && x.trim()).map(x => x.trim());
-                            if (e.target.checked) {
-                              setAssignForm({ ...assignForm, subjects: [...current, sub.name].join(', ') });
-                            } else {
-                              setAssignForm({ ...assignForm, subjects: current.filter(x => x !== sub.name).join(', ') });
-                            }
-                          }}
-                        />
-                        <span className="text-xs font-bold text-gray-600">{sub.name}</span>
-                      </label>
+                  <input
+                    type="text"
+                    value={assignForm.subjects}
+                    onChange={(e) => setAssignForm({ ...assignForm, subjects: e.target.value })}
+                    className="w-full p-4 bg-gray-50 border-none rounded-2xl font-bold text-gray-700 focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all"
+                    placeholder="Maths, Physics, etc."
+                  />
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {availableSubjects.slice(0, 5).map(sub => (
+                      <button
+                        key={sub._id}
+                        type="button"
+                        onClick={() => {
+                          const current = assignForm.subjects.split(',').map(s => s.trim()).filter(x => x);
+                          if (!current.includes(sub.name)) {
+                            setAssignForm({ ...assignForm, subjects: [...current, sub.name].join(', ') });
+                          }
+                        }}
+                        className="px-2 py-1 bg-gray-100 text-gray-500 rounded-lg text-[9px] font-bold hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
+                      >
+                        {sub.name}
+                      </button>
                     ))}
                   </div>
                 </div>
 
-                <div className="space-y-4">
+                <div className="space-y-2">
                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-4">Assign Classes</label>
-                  <div className="flex flex-wrap gap-2 p-4 bg-gray-50 rounded-2xl">
-                    {availableClasses.map(cls => (
-                      <label key={cls._id} className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl cursor-pointer border border-transparent hover:border-indigo-100 transition-all">
-                        <input
-                          type="checkbox"
-                          className="w-4 h-4 rounded text-indigo-600 focus:ring-0"
-                          checked={assignForm.classes.split(',').filter(x => x).map(x => x.trim()).includes(cls.name)}
-                          onChange={(e) => {
-                            const current = assignForm.classes.split(',').filter(x => x && x.trim()).map(x => x.trim());
-                            if (e.target.checked) {
-                              setAssignForm({ ...assignForm, classes: [...current, cls.name].join(', ') });
-                            } else {
-                              setAssignForm({ ...assignForm, classes: current.filter(x => x !== cls.name).join(', ') });
-                            }
-                          }}
-                        />
-                        <span className="text-xs font-bold text-gray-600">{cls.name}</span>
-                      </label>
+                  <input
+                    type="text"
+                    value={assignForm.classes}
+                    onChange={(e) => setAssignForm({ ...assignForm, classes: e.target.value })}
+                    className="w-full p-4 bg-gray-50 border-none rounded-2xl font-bold text-gray-700 focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all"
+                    placeholder="Class 10, Class 11"
+                  />
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {availableClasses.slice(0, 5).map(cls => (
+                      <button
+                        key={cls._id}
+                        type="button"
+                        onClick={() => {
+                          const current = assignForm.classes.split(',').map(s => s.trim()).filter(x => x);
+                          if (!current.includes(cls.name)) {
+                            setAssignForm({ ...assignForm, classes: [...current, cls.name].join(', ') });
+                          }
+                        }}
+                        className="px-2 py-1 bg-gray-100 text-gray-500 rounded-lg text-[9px] font-bold hover:bg-emerald-50 hover:text-emerald-600 transition-colors"
+                      >
+                        {cls.name}
+                      </button>
                     ))}
                   </div>
                 </div>

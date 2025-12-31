@@ -7,10 +7,13 @@ import {
     FaUserGraduate, FaChalkboardTeacher, FaMoneyBillWave, FaBullhorn,
     FaChartLine, FaRegClock, FaSignOutAlt, FaChevronRight, FaTimesCircle,
     FaCalendarAlt, FaBook, FaFilePdf, FaArrowUp, FaArrowDown, FaCheckCircle,
-    FaTasks, FaSearch, FaWallet, FaLock, FaBell
+    FaTasks, FaSearch, FaWallet, FaLock, FaBell, FaCreditCard, FaLayerGroup, FaHistory, FaIdCard, FaEnvelopeOpenText
 } from 'react-icons/fa';
+import oasisLogo from '../assets/oasis_logo.png';
 import oasisFullLogo from '../assets/oasis_full_logo.png';
 import receiptBanner from '../assets/receipt_banner.png';
+import config from '../config';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, Title, Tooltip, Legend, Filler, ArcElement);
 
@@ -29,12 +32,25 @@ const ParentDashboard = () => {
     const [activeTab, setActiveTab] = useState('Overview');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+    const [selectedNotice, setSelectedNotice] = useState(null);
+
+    // Razorpay Loader
+    const loadRazorpay = () => {
+        return new Promise((resolve) => {
+            const script = document.createElement('script');
+            script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+            script.onload = () => resolve(true);
+            script.onerror = () => resolve(false);
+            document.body.appendChild(script);
+        });
+    };
 
     // Payment State
     const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [paymentAmount, setPaymentAmount] = useState('');
     const [paymentMethod, setPaymentMethod] = useState('UPI');
     const [paymentLoading, setPaymentLoading] = useState(false);
+    const [paymentDetails, setPaymentDetails] = useState({ ref: '', bankName: '', remarks: '' });
 
     useEffect(() => {
         if (user?.id) {
@@ -159,20 +175,99 @@ const ParentDashboard = () => {
         setPaymentLoading(true);
         const token = sessionStorage.getItem('token');
         const headers = { Authorization: `Bearer ${token}` };
-        try {
-            await axios.post('http://localhost:5002/api/fees/pay', {
-                studentId: selectedChild,
-                amount: paymentAmount,
-                paymentMethod
-            }, { headers });
 
-            alert('Payment Successful!');
-            setShowPaymentModal(false);
-            setPaymentAmount('');
-            fetchFees(selectedChild);
+        try {
+            if (paymentMethod === 'Razorpay') {
+                // 1. Load Razorpay SDK
+                const res = await loadRazorpay();
+                if (!res) {
+                    alert('Razorpay SDK failed to load. Are you online?');
+                    setPaymentLoading(false);
+                    return;
+                }
+
+                // 2. Create Order on Backend
+                const result = await axios.post(`${config.API_URL}/fees/razorpay/create-order`, {
+                    amount: paymentAmount,
+                    studentId: selectedChild
+                }, { headers });
+
+                if (!result) {
+                    alert("Server error. Are you online?");
+                    setPaymentLoading(false);
+                    return;
+                }
+
+                const { amount, id: order_id, currency } = result.data;
+
+                // 3. Open Razorpay Checktout
+                const options = {
+                    key: config.PAYMENT.RAZORPAY_KEY_ID, // Key ID from config
+                    amount: amount.toString(),
+                    currency: currency,
+                    name: "Oasis Institute",
+                    description: "Fee Payment Transaction",
+                    image: oasisLogo,
+                    order_id: order_id,
+                    handler: async function (response) {
+                        try {
+                            const data = {
+                                orderId: response.razorpay_order_id,
+                                paymentId: response.razorpay_payment_id,
+                                signature: response.razorpay_signature,
+                                studentId: selectedChild,
+                                amount: paymentAmount
+                            };
+
+                            await axios.post(`${config.API_URL}/fees/razorpay/verify`, data, { headers });
+
+                            alert('Payment Successful and Verified!');
+                            setShowPaymentModal(false);
+                            setPaymentAmount('');
+                            setPaymentDetails({ ref: '', bankName: '', remarks: '' });
+                            fetchFees(selectedChild);
+                        } catch (error) {
+                            console.error("Verification Error", error);
+                            alert("Payment successful but verification failed.");
+                        }
+                    },
+                    prefill: {
+                        name: profile.name,
+                        email: profile.email,
+                        contact: profile.phone
+                    },
+                    notes: {
+                        address: "Oasis Institute Corporate Office"
+                    },
+                    theme: {
+                        color: "#6366f1"
+                    }
+                };
+
+                const paymentObject = new window.Razorpay(options);
+                paymentObject.open();
+                setPaymentLoading(false);
+            } else {
+                // Manual/Offline Payment Request (UPI QR or Bank)
+                await axios.post(`${config.API_URL}/fees/pay`, {
+                    studentId: selectedChild,
+                    amount: paymentAmount,
+                    paymentMethod: paymentMethod,
+                    transactionId: paymentDetails.ref,
+                    remarks: `${paymentDetails.bankName ? 'Source: ' + paymentDetails.bankName : ''} ${paymentDetails.remarks}`
+                }, { headers });
+
+                alert(`${paymentMethod} Transaction Logged Successfully!`);
+                setShowPaymentModal(false);
+                setPaymentAmount('');
+                setPaymentDetails({ ref: '', bankName: '', remarks: '' });
+                fetchFees(selectedChild);
+                setPaymentLoading(false);
+            }
+
         } catch (err) {
-            alert('Payment Failed');
-        } finally {
+            console.error('Payment Error Details:', err.response?.data || err.message);
+            alert(`Payment Error: ${err.response?.data?.message || 'Could not connect to financial server'}`);
             setPaymentLoading(false);
         }
     };
@@ -306,7 +401,7 @@ const ParentDashboard = () => {
                     <div className="w-full flex justify-center">
                         <img src={oasisFullLogo} alt="Oasis Logo" className="h-16 object-contain brightness-110 drop-shadow-lg" />
                     </div>
-                    <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden p-2 text-teal-300 hover:text-white absolute right-4 top-6">
+                    <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden p-2 text-indigo-300 hover:text-white absolute right-4 top-6">
                         <FaTimesCircle className="text-2xl" />
                     </button>
                 </div>
@@ -314,20 +409,21 @@ const ParentDashboard = () => {
                 <nav className="flex-1 p-6 space-y-2 overflow-y-auto">
                     {[
                         { id: 'Overview', icon: FaChartLine, label: 'Overview' },
-                        { id: 'Fees', icon: FaMoneyBillWave, label: 'Fee Payment' },
+                        { id: 'Fees', icon: FaMoneyBillWave, label: 'Pay Fees / History' },
                         { id: 'Attendance', icon: FaCalendarAlt, label: 'Attendance' },
                         { id: 'Performance', icon: FaUserGraduate, label: 'Performance' },
                         { id: 'Materials', icon: FaBook, label: 'Study Materials' },
+                        { id: 'Notices', icon: FaBullhorn, label: 'Notice Board' },
                     ].map(item => (
                         <button
                             key={item.id}
                             onClick={() => { setActiveTab(item.id); setIsSidebarOpen(false); }}
                             className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all font-semibold text-sm ${activeTab === item.id
-                                ? 'bg-teal-500 text-white shadow-teal-900/50 shadow-lg translate-x-1'
-                                : 'hover:bg-teal-800/50 hover:text-white'
+                                ? 'bg-indigo-500 text-white shadow-indigo-900/50 shadow-lg translate-x-1'
+                                : 'hover:bg-indigo-800/50 hover:text-white'
                                 }`}
                         >
-                            <item.icon className={activeTab === item.id ? 'text-white' : 'text-teal-400'} />
+                            <item.icon className={activeTab === item.id ? 'text-white' : 'text-indigo-400'} />
                             {item.label}
                             {activeTab === item.id && <FaChevronRight className="ml-auto text-[10px]" />}
                         </button>
@@ -335,12 +431,12 @@ const ParentDashboard = () => {
                 </nav>
 
                 <div className="p-6 mt-auto">
-                    <div className="bg-teal-800/40 p-5 rounded-3xl border border-teal-700/50">
+                    <div className="bg-indigo-800/40 p-5 rounded-3xl border border-indigo-700/50">
                         <div className="flex items-center gap-3 mb-4">
-                            <div className="w-10 h-10 rounded-xl bg-teal-400/20 flex items-center justify-center text-teal-300">
+                            <div className="w-10 h-10 rounded-xl bg-indigo-400/20 flex items-center justify-center text-indigo-300">
                                 <FaRegClock />
                             </div>
-                            <div className="text-[11px] font-bold text-teal-200">Session Active</div>
+                            <div className="text-[11px] font-bold text-indigo-200">Session Active</div>
                         </div>
                         <button
                             onClick={logout}
@@ -355,7 +451,7 @@ const ParentDashboard = () => {
             {/* Main Content */}
             <main className="flex-1 flex flex-col overflow-hidden w-full bg-[#F8FAFC] dark:bg-gray-950 transition-colors duration-300">
                 {/* Header */}
-                <header className="h-20 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between px-6 lg:px-10 shadow-sm z-10 w-full transition-colors duration-300">
+                <header className="h-20 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between px-6 lg:px-10 shadow-sm z-[60] w-full transition-colors duration-300">
                     <div className="flex items-center gap-6 flex-1 max-w-2xl text-gray-400">
                         <button
                             onClick={() => setIsSidebarOpen(true)}
@@ -379,9 +475,9 @@ const ParentDashboard = () => {
                         <div className="relative">
                             <button
                                 onClick={toggleNotifications}
-                                className="p-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-full transition-colors relative focus:outline-none"
+                                className={`p-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-full transition-colors relative focus:outline-none ${isNotificationsOpen ? 'bg-gray-50 dark:bg-gray-800 text-indigo-600 dark:text-indigo-400' : 'text-gray-400'}`}
                             >
-                                <FaBell className="text-gray-400 dark:text-gray-500 hover:text-indigo-500 dark:hover:text-indigo-400 text-xl transition-colors" />
+                                <FaBell className={`text-xl transition-colors ${isNotificationsOpen ? 'text-indigo-500 dark:text-indigo-400' : 'text-gray-400'}`} />
                                 {notifications.some(n => !n.read) && (
                                     <span className="absolute top-2 right-2.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-gray-900 animate-pulse"></span>
                                 )}
@@ -390,11 +486,14 @@ const ParentDashboard = () => {
                             {/* Notification Dropdown */}
                             {isNotificationsOpen && (
                                 <div
-                                    className="absolute right-0 mt-4 w-80 sm:w-96 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+                                    className="fixed inset-x-4 top-24 lg:absolute lg:inset-auto lg:right-[-10px] lg:top-full lg:mt-4 w-auto lg:w-96 bg-white dark:bg-gray-900 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-gray-100 dark:border-gray-700 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200"
                                     onClick={(e) => e.stopPropagation()}
                                 >
-                                    <div className="p-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-gray-50/50 dark:bg-gray-800/50 backdrop-blur-sm">
-                                        <h3 className="font-bold text-gray-900 dark:text-white text-sm">Notifications</h3>
+                                    <div className="p-5 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-gray-50/50 dark:bg-gray-800/50 backdrop-blur-sm">
+                                        <div className="flex items-center gap-2">
+                                            <h3 className="font-black text-gray-800 dark:text-white text-xs uppercase tracking-widest">Notifications</h3>
+                                            <span className="bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-[10px] font-black px-2 py-0.5 rounded-full">{notifications.length} Total</span>
+                                        </div>
                                         {notifications.some(n => !n.read) && (
                                             <button
                                                 onClick={handleMarkAllRead}
@@ -404,24 +503,30 @@ const ParentDashboard = () => {
                                             </button>
                                         )}
                                     </div>
-                                    <div className="max-h-[22rem] overflow-y-auto custom-scrollbar">
+                                    <div className="max-h-[60vh] lg:max-h-80 overflow-y-auto custom-scrollbar">
                                         {notifications.length > 0 ? (
                                             <div className="divide-y divide-gray-50 dark:divide-gray-800">
                                                 {notifications.map(n => (
                                                     <div
                                                         key={n._id}
-                                                        className={`p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${!n.read ? 'bg-indigo-50/30 dark:bg-indigo-900/10' : ''}`}
+                                                        onClick={() => {
+                                                            setSelectedNotice(n);
+                                                            setIsNotificationsOpen(false);
+                                                        }}
+                                                        className={`p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer group ${!n.read ? 'bg-indigo-50/30 dark:bg-indigo-900/10' : ''}`}
                                                     >
-                                                        <div className="flex gap-3">
-                                                            <div className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ${!n.read ? 'bg-indigo-500' : 'bg-gray-300 dark:bg-gray-600'}`}></div>
-                                                            <div>
-                                                                <p className={`text-sm font-semibold mb-1 ${!n.read ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400'}`}>
+                                                        <div className="flex gap-4">
+                                                            <div className={`mt-1 w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-colors ${!n.read ? 'bg-indigo-500 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-400'}`}>
+                                                                <FaBell className="text-xs" />
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className={`text-xs font-bold mb-1 truncate ${!n.read ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400'}`}>
                                                                     {n.title}
                                                                 </p>
-                                                                <p className="text-xs text-gray-500 dark:text-gray-500 leading-relaxed">
+                                                                <p className="text-[10px] text-gray-500 dark:text-gray-500 leading-relaxed line-clamp-2">
                                                                     {n.message}
                                                                 </p>
-                                                                <p className="text-[10px] text-gray-400 dark:text-gray-600 mt-2 font-medium">
+                                                                <p className="text-[9px] text-gray-400 dark:text-gray-600 mt-2 font-bold uppercase tracking-widest">
                                                                     {new Date(n.createdAt).toLocaleDateString()}
                                                                 </p>
                                                             </div>
@@ -430,65 +535,67 @@ const ParentDashboard = () => {
                                                 ))}
                                             </div>
                                         ) : (
-                                            <div className="p-8 text-center flex flex-col items-center justify-center">
-                                                <div className="w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-3">
-                                                    <FaBell className="text-gray-400 dark:text-gray-600 text-lg" />
+                                            <div className="p-10 text-center flex flex-col items-center justify-center text-center">
+                                                <div className="w-16 h-16 bg-gray-50 dark:bg-gray-800 rounded-full flex items-center justify-center text-gray-200 dark:text-gray-700 mx-auto mb-4">
+                                                    <FaBell className="text-2xl" />
                                                 </div>
-                                                <p className="text-sm font-bold text-gray-900 dark:text-gray-200">No Notifications</p>
-                                                <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">You're all caught up!</p>
+                                                <p className="text-xs text-gray-400 dark:text-gray-500 font-bold uppercase tracking-widest">All caught up!</p>
                                             </div>
                                         )}
                                     </div>
                                     <div className="p-3 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-800 text-center">
-                                        <button onClick={() => setIsNotificationsOpen(false)} className="text-xs font-bold text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 uppercase tracking-wide">
-                                            Close
+                                        <button
+                                            onClick={() => setIsNotificationsOpen(false)}
+                                            className="w-full py-2.5 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 dark:text-gray-500 font-black text-[10px] uppercase rounded-xl transition-colors tracking-widest"
+                                        >
+                                            Close Panel
                                         </button>
                                     </div>
                                 </div>
                             )}
                         </div>
+                    </div>
 
-                        <div className="flex items-center gap-4 px-5 py-2.5 bg-gray-50 dark:bg-gray-800 rounded-2xl border border-dotted border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-white dark:hover:bg-gray-700 transition-all group">
-                            <div className="w-9 h-9 rounded-xl bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold text-sm group-hover:scale-105 transition-transform">
-                                {profile.name?.charAt(0).toUpperCase() || 'P'}
-                            </div>
-                            <div className="text-right hidden md:block">
-                                <p className="text-xs font-bold text-gray-900 dark:text-white leading-none mb-1">{profile.name || 'Parent'}</p>
-                                <p className="text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider">Guardian</p>
-                            </div>
+                    <div className="flex items-center gap-4 px-5 py-2.5 bg-gray-50 dark:bg-gray-800 rounded-2xl border border-dotted border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-white dark:hover:bg-gray-700 transition-all group">
+                        <div className="w-9 h-9 rounded-xl bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold text-sm group-hover:scale-105 transition-transform">
+                            {profile.name?.charAt(0).toUpperCase() || 'P'}
+                        </div>
+                        <div className="text-right hidden md:block">
+                            <p className="text-xs font-bold text-gray-900 dark:text-white leading-none mb-1">{profile.name || 'Parent'}</p>
+                            <p className="text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider">Guardian</p>
                         </div>
                     </div>
                 </header>
 
                 {/* Dashboard Content */}
-                <div className="flex-1 overflow-y-auto p-10 space-y-10 scroll-smooth">
+                < div className="flex-1 overflow-y-auto p-10 space-y-10 scroll-smooth" >
                     {activeTab === 'Overview' && (
                         <>
-                            {/* Welcome Banner - Parent Teal Style */}
-                            <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-r from-teal-600 via-emerald-600 to-cyan-600 p-10 shadow-2xl shadow-teal-200/50 mb-10 text-white">
+                            {/* Welcome Banner - Parent Indigo Style */}
+                            <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-600 p-10 shadow-2xl shadow-indigo-200/50 mb-10 text-white">
                                 <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 bg-white/10 blur-3xl rounded-full pointer-events-none"></div>
                                 <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-60 h-60 bg-yellow-500/20 blur-3xl rounded-full pointer-events-none"></div>
 
                                 <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
                                     <div>
                                         <div className="flex items-center gap-3 mb-2">
-                                            <span className="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-white/10">Parent Console</span>
-                                            <span className="text-teal-100 text-xs font-bold">{new Date().toDateString()}</span>
+                                            <span className="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-white/10">PARENT PORTAL</span>
+                                            <span className="text-indigo-100 text-xs font-bold">{new Date().toDateString()}</span>
                                         </div>
                                         <h1 className="text-4xl md:text-5xl font-[900] tracking-tight mb-2 leading-tight">
-                                            Namaste, <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-200 to-emerald-100">{profile.name?.split(' ')[0]}</span> 👋
+                                            Namaste, <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-200 to-blue-100">{profile.name?.split(' ')[0]}</span> 👋
                                         </h1>
-                                        <p className="text-teal-50 font-medium max-w-lg text-sm leading-relaxed opacity-90">
+                                        <p className="text-indigo-50 font-medium max-w-lg text-sm leading-relaxed opacity-90">
                                             You are viewing progress for <span className="font-black text-white underline decoration-yellow-400 decoration-2 underline-offset-4">{currentChild?.name || 'Student'}</span>.
                                             <br />
-                                            Attendance is <span className="font-black text-white">{attendancePercentage}%</span> and academic performance is <span className="font-black text-emerald-200">{avgMarks > 0 ? 'Optimal' : 'Tracking'}</span>.
+                                            Attendance is <span className="font-black text-white">{attendancePercentage}%</span> and academic performance is <span className="font-black text-indigo-200">{avgMarks > 0 ? 'Optimal' : 'Tracking'}</span>.
                                         </p>
                                     </div>
                                     <div className="flex gap-4">
-                                        <button onClick={() => setActiveTab('Fees')} className="bg-white text-teal-700 px-6 py-3 rounded-2xl font-black text-xs shadow-lg hover:bg-teal-50 transition-all flex items-center gap-2 group">
+                                        <button onClick={() => setActiveTab('Fees')} className="bg-white text-indigo-700 px-6 py-3 rounded-2xl font-black text-xs shadow-lg hover:bg-indigo-50 transition-all flex items-center gap-2 group">
                                             <FaMoneyBillWave className="group-hover:rotate-12 transition-transform" /> PAY FEES
                                         </button>
-                                        <button onClick={() => window.print()} className="bg-teal-900/30 text-white border border-white/20 px-6 py-3 rounded-2xl font-black text-xs hover:bg-teal-900/50 transition-all backdrop-blur-md">
+                                        <button onClick={() => window.print()} className="bg-indigo-900/30 text-white border border-white/20 px-6 py-3 rounded-2xl font-black text-xs hover:bg-indigo-900/50 transition-all backdrop-blur-md">
                                             D'LOAD REPORT
                                         </button>
                                     </div>
@@ -498,12 +605,16 @@ const ParentDashboard = () => {
                             {/* Stats Cards - Admin Style */}
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                                 {[
-                                    { label: 'Attendance', value: `${attendancePercentage}%`, trend: 'Last 30 Days', icon: FaCalendarAlt, color: 'emerald', gradient: 'from-emerald-500 to-teal-500' },
+                                    { label: 'Attendance', value: `${attendancePercentage}%`, trend: 'Last 30 Days', icon: FaCalendarAlt, color: 'blue', gradient: 'from-blue-500 to-cyan-500' },
                                     { label: 'Avg Assessment', value: `${avgMarks}%`, trend: 'Academics', icon: FaChartLine, color: 'indigo', gradient: 'from-indigo-500 to-blue-500' },
-                                    { label: 'Outstanding Due', value: `₹${pendingFees.toLocaleString()}`, trend: 'Important', icon: FaWallet, color: 'rose', gradient: 'from-rose-500 to-pink-500' },
+                                    { id: 'fees', label: 'Outstanding Due', value: `₹${pendingFees.toLocaleString()}`, trend: 'Important', icon: FaWallet, color: 'rose', gradient: 'from-rose-500 to-pink-500' },
                                     { label: 'Notices', value: activeNoticesCount, trend: 'Updates', icon: FaBullhorn, color: 'orange', gradient: 'from-orange-500 to-amber-500' },
                                 ].map((stat, i) => (
-                                    <div key={i} className="p-8 bg-white dark:bg-gray-800 rounded-[2.5rem] border border-gray-100 dark:border-gray-700 shadow-[0_8px_30px_-8px_rgba(0,0,0,0.06)] transition-all duration-300 relative overflow-hidden group hover:-translate-y-1 hover:shadow-xl">
+                                    <div
+                                        key={i}
+                                        onClick={() => stat.id === 'fees' && setActiveTab('Fees')}
+                                        className={`p-8 bg-white dark:bg-gray-800 rounded-[2.5rem] border border-gray-100 dark:border-gray-700 shadow-[0_8px_30px_-8px_rgba(0,0,0,0.06)] transition-all duration-300 relative overflow-hidden group hover:-translate-y-1 hover:shadow-xl ${stat.id === 'fees' ? 'cursor-pointer' : ''}`}
+                                    >
                                         <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${stat.gradient} opacity-10 rounded-full -mr-12 -mt-12 group-hover:scale-150 transition-transform duration-700 ease-out`}></div>
                                         <div className="flex items-center justify-between mb-8 relative">
                                             <div className={`w-14 h-14 bg-${stat.color}-50 rounded-2xl flex items-center justify-center text-${stat.color}-600 text-xl shadow-inner`}>
@@ -513,15 +624,53 @@ const ParentDashboard = () => {
                                                 {stat.trend}
                                             </span>
                                         </div>
-
-                                        <h3 className="text-4xl font-[900] text-slate-800 dark:text-white mb-2 relative tracking-tight">{stat.value}</h3>
-                                        <p className="text-xs font-bold text-slate-400 dark:text-gray-500 uppercase tracking-widest relative">{stat.label}</p>
-                                    </div>
+                                        <div className="flex items-end justify-between relative">
+                                            <div>
+                                                <h3 className="text-4xl font-[900] text-slate-800 dark:text-white mb-2 tracking-tight">{stat.value}</h3>
+                                                <p className="text-xs font-bold text-slate-400 dark:text-gray-500 uppercase tracking-widest">{stat.label}</p>
+                                            </div>
+                                            {stat.id === 'fees' && (
+                                                <button className="p-2 bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded-xl hover:bg-rose-600 hover:text-white transition-all shadow-sm">
+                                                    <FaMoneyBillWave />
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div >
                                 ))}
-                            </div>
+                            </div >
+
+                            {/* Live Notices Section - Restored */}
+                            < div className="bg-white rounded-[2.5rem] p-8 border border-gray-100 shadow-sm mb-6 mt-6" >
+                                <div className="flex items-center justify-between mb-6">
+                                    <h3 className="text-xl font-black text-gray-800 flex items-center gap-2">
+                                        <FaBullhorn className="text-orange-500" /> Latest Updates
+                                    </h3>
+                                    <button onClick={() => setActiveTab('Notices')} className="text-xs font-bold text-indigo-600 hover:underline">View All</button>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {notices.slice(0, 2).map((notice, idx) => (
+                                        <div key={idx} onClick={() => setSelectedNotice(notice)} className="p-4 rounded-2xl bg-orange-50/50 border border-orange-100 hover:bg-orange-50 cursor-pointer transition-colors relative group">
+                                            <div className="flex items-start gap-4">
+                                                <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-orange-500 shadow-sm font-black text-lg">
+                                                    {idx + 1}
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-bold text-gray-800 text-sm mb-1 group-hover:text-orange-600 transition-colors">{notice.title}</h4>
+                                                    <p className="text-xs text-gray-500 line-clamp-2">{notice.message || notice.content}</p>
+                                                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-2">
+                                                        {new Date(notice.createdAt || Date.now()).toLocaleDateString()}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <FaChevronRight className="absolute right-4 top-1/2 -translate-y-1/2 text-orange-300 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                        </div>
+                                    ))}
+                                    {notices.length === 0 && <p className="text-gray-400 text-sm font-bold italic col-span-2 text-center py-4">No recent updates</p>}
+                                </div>
+                            </div >
 
                             {/* Charts Grid - Admin Layout */}
-                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                            < div className="grid grid-cols-1 lg:grid-cols-3 gap-8" >
                                 <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-[3rem] p-10 border border-gray-100 dark:border-gray-700 shadow-sm transition-all hover:shadow-xl group">
                                     <div className="flex items-center justify-between mb-8">
                                         <div>
@@ -550,104 +699,105 @@ const ParentDashboard = () => {
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                            </div >
                         </>
                     )}
 
                     {/* FEES TAB */}
-                    {activeTab === 'Fees' && (
-                        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                            <div className="bg-white dark:bg-gray-800 rounded-[3rem] p-10 border border-gray-100 dark:border-gray-700 shadow-sm">
-                                <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-6">Fee Structure</h2>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                                    <div className="p-6 bg-gray-50 dark:bg-gray-700 rounded-2xl">
-                                        <p className="text-xs font-bold text-gray-400 dark:text-gray-300 uppercase">Total Fee</p>
-                                        <p className="text-3xl font-black text-gray-900 dark:text-white">₹{fees.totalFees}</p>
+                    {
+                        activeTab === 'Fees' && (
+                            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                <div className="bg-white dark:bg-gray-800 rounded-[3rem] p-10 border border-gray-100 dark:border-gray-700 shadow-sm">
+                                    <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-6">Fee Structure</h2>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                                        <div className="p-6 bg-gray-50 dark:bg-gray-700 rounded-2xl">
+                                            <p className="text-xs font-bold text-gray-400 dark:text-gray-300 uppercase">Total Fee</p>
+                                            <p className="text-3xl font-black text-gray-900 dark:text-white">₹{fees.totalFees}</p>
+                                        </div>
+                                        <div className="p-6 bg-emerald-50 rounded-2xl">
+                                            <p className="text-xs font-bold text-emerald-600 uppercase">Paid Amount</p>
+                                            <p className="text-3xl font-black text-emerald-700">₹{fees.paidFees}</p>
+                                        </div>
+                                        <div className="p-6 bg-rose-50 rounded-2xl">
+                                            <p className="text-xs font-bold text-rose-600 uppercase">Pending Due</p>
+                                            <p className="text-3xl font-black text-rose-700">₹{fees.pendingFees}</p>
+                                        </div>
                                     </div>
-                                    <div className="p-6 bg-emerald-50 rounded-2xl">
-                                        <p className="text-xs font-bold text-emerald-600 uppercase">Paid Amount</p>
-                                        <p className="text-3xl font-black text-emerald-700">₹{fees.paidFees}</p>
-                                    </div>
-                                    <div className="p-6 bg-rose-50 rounded-2xl">
-                                        <p className="text-xs font-bold text-rose-600 uppercase">Pending Due</p>
-                                        <p className="text-3xl font-black text-rose-700">₹{fees.pendingFees}</p>
-                                    </div>
-                                </div>
 
-                                {fees.pendingFees > 0 && (
-                                    <div className="mb-8">
+                                    <div className="mb-8 flex flex-wrap gap-4">
                                         <button
                                             onClick={() => setShowPaymentModal(true)}
                                             className="bg-indigo-600 text-white px-8 py-4 rounded-xl font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all flex items-center gap-2"
                                         >
-                                            <FaWallet /> Pay Now
+                                            <FaWallet /> Pay Online / Direct
                                         </button>
                                     </div>
-                                )}
 
-                                <div className="mt-10">
-                                    <h3 className="text-lg font-bold text-gray-900 mb-4">Payment History</h3>
-                                    <div className="overflow-x-auto">
-                                        <table className="w-full text-left">
-                                            <thead>
-                                                <tr className="border-b border-gray-100 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                                                    <th className="pb-3 pl-4">Date</th>
-                                                    <th className="pb-3">Transaction ID</th>
-                                                    <th className="pb-3">Mode</th>
-                                                    <th className="pb-3">Amount</th>
-                                                    <th className="pb-3">Receipt</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
-                                                {fees.payments?.map(p => (
-                                                    <tr key={p._id} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition-colors">
-                                                        <td className="py-4 pl-4 font-medium text-gray-700 dark:text-gray-300">{new Date(p.date).toLocaleDateString()}</td>
-                                                        <td className="py-4 text-sm text-gray-500 dark:text-gray-400 font-mono">{p.transactionId || 'N/A'}</td>
-                                                        <td className="py-4 text-sm text-gray-500 dark:text-gray-400 capitalize">{p.mode}</td>
-                                                        <td className="py-4 font-bold text-gray-900 dark:text-white">₹{p.amount}</td>
-                                                        <td className="py-4">
-                                                            <button onClick={() => handleDownloadReceipt(p)} className="text-indigo-600 text-xs font-bold hover:underline flex items-center gap-1">
-                                                                <FaFilePdf /> Receipt
-                                                            </button>
-                                                        </td>
+                                    <div className="mt-10">
+                                        <h3 className="text-lg font-bold text-gray-900 mb-4">Payment History</h3>
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-left">
+                                                <thead>
+                                                    <tr className="border-b border-gray-100 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                                        <th className="pb-3 pl-4">Date</th>
+                                                        <th className="pb-3">Transaction ID</th>
+                                                        <th className="pb-3">Mode</th>
+                                                        <th className="pb-3">Amount</th>
+                                                        <th className="pb-3">Receipt</th>
                                                     </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
+                                                </thead>
+                                                <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
+                                                    {fees.payments?.map(p => (
+                                                        <tr key={p._id} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition-colors">
+                                                            <td className="py-4 pl-4 font-medium text-gray-700 dark:text-gray-300">{new Date(p.date).toLocaleDateString()}</td>
+                                                            <td className="py-4 text-sm text-gray-500 dark:text-gray-400 font-mono">{p.transactionId || 'N/A'}</td>
+                                                            <td className="py-4 text-sm text-gray-500 dark:text-gray-400 capitalize">{p.mode}</td>
+                                                            <td className="py-4 font-bold text-gray-900 dark:text-white">₹{p.amount}</td>
+                                                            <td className="py-4">
+                                                                <button onClick={() => handleDownloadReceipt(p)} className="text-indigo-600 text-xs font-bold hover:underline flex items-center gap-1">
+                                                                    <FaFilePdf /> Receipt
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    )}
+                        )
+                    }
 
-                    {/* ATTENDANCE TAB */}
-                    {activeTab === 'Attendance' && (
-                        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                            {/* Attendance Summary */}
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                <div className="bg-white dark:bg-gray-800 p-6 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-sm">
-                                    <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">Total Classes</p>
-                                    <p className="text-3xl font-black text-gray-900 dark:text-white">{filteredTotal}</p>
+                    {/* ATTENDANCE TAB - Restored Calendar View */}
+                    {
+                        activeTab === 'Attendance' && (
+                            <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                {/* Attendance Summary */}
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    <div className="bg-white dark:bg-gray-800 p-6 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-sm">
+                                        <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">Total Classes</p>
+                                        <p className="text-3xl font-black text-gray-900 dark:text-white">{filteredTotal}</p>
+                                    </div>
+                                    <div className="bg-white dark:bg-gray-800 p-6 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-sm">
+                                        <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">Present</p>
+                                        <p className="text-3xl font-black text-emerald-500">{filteredPresent}</p>
+                                    </div>
+                                    <div className="bg-white dark:bg-gray-800 p-6 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-sm">
+                                        <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">Absent</p>
+                                        <p className="text-3xl font-black text-rose-500">{filteredTotal - filteredPresent}</p>
+                                    </div>
+                                    <div className="bg-white dark:bg-gray-800 p-6 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-sm">
+                                        <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">Attendance %</p>
+                                        <p className={`text-3xl font-black ${filteredPercentage >= 75 ? 'text-emerald-500' : 'text-rose-500'}`}>{filteredPercentage}%</p>
+                                    </div>
                                 </div>
-                                <div className="bg-white dark:bg-gray-800 p-6 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-sm">
-                                    <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">Present</p>
-                                    <p className="text-3xl font-black text-emerald-500">{filteredPresent}</p>
-                                </div>
-                                <div className="bg-white dark:bg-gray-800 p-6 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-sm">
-                                    <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">Absent</p>
-                                    <p className="text-3xl font-black text-rose-500">{filteredTotal - filteredPresent}</p>
-                                </div>
-                                <div className="bg-white dark:bg-gray-800 p-6 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-sm">
-                                    <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">Attendance %</p>
-                                    <p className={`text-3xl font-black ${filteredPercentage >= 75 ? 'text-emerald-500' : 'text-rose-500'}`}>{filteredPercentage}%</p>
-                                </div>
-                            </div>
 
-                            <div className="bg-white dark:bg-gray-800 rounded-[3rem] p-10 border border-gray-100 dark:border-gray-700 shadow-sm">
-                                <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
-                                    <h2 className="text-2xl font-black text-gray-900 dark:text-white">Attendance Log</h2>
+                                {/* Filter Section */}
+                                <div className="bg-white dark:bg-gray-800 rounded-[2rem] p-6 border border-gray-100 dark:border-gray-700 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
+                                    <h2 className="text-xl font-black text-gray-900 dark:text-white">Academic Calendar</h2>
                                     <div className="flex items-center gap-2">
-                                        <span className="text-sm font-bold text-gray-500 dark:text-gray-400">Filter by:</span>
+                                        <span className="text-sm font-bold text-gray-500 dark:text-gray-400">Filter by Subject:</span>
                                         <select
                                             value={selectedSubject}
                                             onChange={(e) => setSelectedSubject(e.target.value)}
@@ -660,30 +810,90 @@ const ParentDashboard = () => {
                                     </div>
                                 </div>
 
-                                {filteredAttendance.length > 0 ? (
-                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                        {filteredAttendance.map(a => (
-                                            <div key={a._id} className={`p-4 rounded-2xl border ${a.status === 'present' ? 'bg-emerald-50 dark:bg-emerald-900/10 border-emerald-100 dark:border-emerald-800' : 'bg-red-50 dark:bg-red-900/10 border-red-100 dark:border-red-800'}`}>
-                                                <div className="flex justify-between items-start mb-2">
-                                                    <p className="text-xs font-bold text-gray-500 dark:text-gray-400">{new Date(a.date).toLocaleDateString()}</p>
-                                                    {a.subjectId?.name && (
-                                                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 bg-white dark:bg-gray-800 rounded-lg text-gray-500 dark:text-gray-400 border border-gray-100 dark:border-gray-700">
-                                                            {a.subjectId.name}
-                                                        </span>
-                                                    )}
+                                {/* Group attendance by month using FILTERED attendance */}
+                                {Object.entries(
+                                    filteredAttendance.reduce((acc, curr) => {
+                                        const date = new Date(curr.date);
+                                        const monthKey = date.toLocaleString('default', { month: 'long', year: 'numeric' });
+                                        if (!acc[monthKey]) acc[monthKey] = [];
+                                        acc[monthKey].push(curr);
+                                        return acc;
+                                    }, {})
+                                ).reverse().map(([monthYear, monthDays]) => {
+                                    const [mName, yName] = monthYear.split(' ');
+                                    const monthDate = new Date(`${mName} 1, ${yName}`);
+                                    const mIdx = monthDate.getMonth();
+                                    const daysInMonth = new Date(yName, mIdx + 1, 0).getDate();
+                                    const firstDay = new Date(yName, mIdx, 1).getDay();
+
+                                    return (
+                                        <div key={monthYear} className="bg-white dark:bg-gray-800 rounded-[3rem] p-10 border border-gray-100 dark:border-gray-700 shadow-sm relative overflow-hidden group">
+                                            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full -mr-16 -mt-16 group-hover:bg-indigo-500/10 transition-colors"></div>
+
+                                            <div className="flex items-center justify-between mb-8 relative z-10">
+                                                <div>
+                                                    <h2 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">{monthYear}</h2>
+                                                    <div className="flex gap-4 mt-2">
+                                                        <div className="flex items-center gap-1.5">
+                                                            <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full"></div>
+                                                            <span className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">PRESENT: {monthDays.filter(d => d.status === 'present').length}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-1.5">
+                                                            <div className="w-2.5 h-2.5 bg-rose-500 rounded-full"></div>
+                                                            <span className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">ABSENT: {monthDays.filter(d => d.status === 'absent').length}</span>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                                <p className={`text-lg font-black uppercase ${a.status === 'present' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>{a.status}</p>
+                                                <div className="bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-indigo-100 dark:border-indigo-800">
+                                                    Log Detail
+                                                </div>
                                             </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div className="text-center py-10 text-gray-400 dark:text-gray-500 font-bold">
-                                        No attendance records found for {selectedSubject}.
+
+                                            <div className="grid grid-cols-7 gap-3 relative z-10">
+                                                {['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map(day => (
+                                                    <div key={day} className="text-center text-[10px] font-black text-gray-300 dark:text-gray-600 py-2 uppercase tracking-widest">{day}</div>
+                                                ))}
+
+                                                {/* Empty days before first of month */}
+                                                {Array.from({ length: firstDay }).map((_, i) => (
+                                                    <div key={`empty-${i}`} className="h-12 md:h-16"></div>
+                                                ))}
+
+                                                {/* Days of the month */}
+                                                {Array.from({ length: daysInMonth }).map((_, i) => {
+                                                    const dNum = i + 1;
+                                                    const attendanceRecord = monthDays.find(ad => new Date(ad.date).getDate() === dNum);
+                                                    const isPresent = attendanceRecord?.status === 'present';
+                                                    const isAbsent = attendanceRecord?.status === 'absent';
+
+                                                    return (
+                                                        <div
+                                                            key={dNum}
+                                                            className={`h-12 md:h-16 rounded-2xl flex flex-col items-center justify-center relative transition-all border shadow-sm
+                                                            ${isPresent ? 'bg-emerald-500 text-white border-emerald-400 shadow-emerald-100 scale-105 z-10 font-bold' :
+                                                                    isAbsent ? 'bg-rose-500 text-white border-rose-400 shadow-rose-100 scale-105 z-10 font-bold' :
+                                                                        'bg-gray-50 dark:bg-gray-700/50 text-gray-400 dark:text-gray-500 border-gray-100 dark:border-gray-700'}`}
+                                                        >
+                                                            <span className="text-sm md:text-lg">{dNum}</span>
+                                                            {attendanceRecord && (
+                                                                <div className="absolute bottom-1 w-1 h-1 bg-white/50 rounded-full"></div>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+
+                                {filteredAttendance.length === 0 && (
+                                    <div className="p-20 text-center bg-gray-50 dark:bg-gray-800 rounded-[3rem] border border-dashed border-gray-200 dark:border-gray-700">
+                                        <FaCalendarAlt className="text-4xl text-gray-200 dark:text-gray-700 mx-auto mb-4" />
+                                        <p className="text-gray-400 dark:text-gray-500 font-bold">No attendance records found for {selectedSubject}.</p>
                                     </div>
                                 )}
                             </div>
-                        </div>
-                    )}
+                        )}
 
                     {/* PERFORMANCE TAB */}
                     {activeTab === 'Performance' && (
@@ -734,42 +944,221 @@ const ParentDashboard = () => {
                         </div>
                     )}
 
+                    {/* NOTICES TAB */}
+                    {activeTab === 'Notices' && (
+                        <div className="bg-white rounded-[3rem] p-10 border border-gray-100 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <div className="flex items-center justify-between mb-8">
+                                <div>
+                                    <h2 className="text-2xl font-black text-gray-900 leading-tight">Notice Board</h2>
+                                    <p className="text-gray-400 font-bold text-sm">Official announcements and circulars</p>
+                                </div>
+                                <div className="bg-orange-50 text-orange-600 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-2">
+                                    <FaBullhorn /> Broadcasts
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                {notices.map((notice) => (
+                                    <div
+                                        key={notice._id}
+                                        onClick={() => setSelectedNotice(notice)}
+                                        className="group p-6 rounded-[2rem] border border-gray-100 bg-gray-50/50 hover:bg-white hover:shadow-lg transition-all cursor-pointer relative overflow-hidden"
+                                    >
+                                        <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/5 rounded-full -mr-16 -mt-16 group-hover:bg-orange-500/10 transition-colors"></div>
+                                        <div className="relative z-10 flex flex-col md:flex-row gap-6 items-start md:items-center">
+                                            <div className="w-16 h-16 bg-white rounded-2xl flex flex-col items-center justify-center border border-gray-100 shadow-sm shrink-0">
+                                                <span className="text-xl font-black text-orange-500">{new Date(notice.createdAt || Date.now()).getDate()}</span>
+                                                <span className="text-[10px] font-bold text-gray-400 uppercase">{new Date(notice.createdAt || Date.now()).toLocaleString('default', { month: 'short' })}</span>
+                                            </div>
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <span className="px-2 py-0.5 bg-orange-100 text-orange-700 rounded-md text-[9px] font-black uppercase tracking-widest">Notice</span>
+                                                    {notice.targetRoles?.map(r => (
+                                                        <span key={r} className="px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded-md text-[9px] font-bold uppercase tracking-widest">{r}</span>
+                                                    ))}
+                                                </div>
+                                                <h3 className="text-lg font-bold text-gray-800 mb-2 group-hover:text-indigo-600 transition-colors">{notice.title}</h3>
+                                                <p className="text-sm text-gray-500 line-clamp-2">{notice.message || notice.content}</p>
+                                            </div>
+                                            <div className="self-end md:self-center">
+                                                <button className="w-10 h-10 rounded-full bg-white border border-gray-100 flex items-center justify-center text-gray-300 group-hover:text-indigo-600 group-hover:border-indigo-100 transition-all">
+                                                    <FaChevronRight />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                                {notices.length === 0 && (
+                                    <div className="text-center py-20 opacity-50">
+                                        <FaBullhorn className="text-6xl text-gray-300 mx-auto mb-4" />
+                                        <p className="font-bold text-gray-400">No active notices available</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
                 </div>
             </main >
 
-            {/* Payment Modal */}
+            {/* Payment Modal Overlay - Complex */}
             {
                 showPaymentModal && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-gray-900/40 backdrop-blur-sm">
-                        <div className="bg-white dark:bg-gray-800 w-full max-w-md rounded-[2.5rem] shadow-2xl p-8 transition-colors duration-300">
-                            <div className="flex justify-between items-center mb-6">
-                                <h2 className="text-2xl font-black text-gray-900 dark:text-white">Make Payment</h2>
-                                <button onClick={() => setShowPaymentModal(false)}><FaTimesCircle className="text-2xl text-gray-300 dark:text-gray-500 hover:text-red-500 transition-colors" /></button>
+                    <div
+                        onClick={() => !paymentLoading && setShowPaymentModal(false)}
+                        className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300"
+                    >
+                        <div
+                            onClick={e => e.stopPropagation()}
+                            className="bg-white dark:bg-gray-800 w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[92vh] border border-slate-100 dark:border-gray-700"
+                        >
+                            <div className="p-6 md:p-8 pb-4 flex justify-between items-center bg-white dark:bg-gray-800 border-b border-slate-50 dark:border-gray-700">
+                                <h2 className="text-xl md:text-2xl font-black text-slate-800 dark:text-white tracking-tight">Financial Authorization</h2>
+                                <button onClick={() => setShowPaymentModal(false)} className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-gray-700 text-slate-400 dark:text-gray-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/30 transition-all flex items-center justify-center"><FaTimesCircle className="text-xl" /></button>
                             </div>
-                            <form onSubmit={handlePayment} className="space-y-6">
-                                <div>
-                                    <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase block mb-2">Amount</label>
-                                    <input
-                                        type="number"
-                                        value={paymentAmount}
-                                        onChange={(e) => setPaymentAmount(e.target.value)}
-                                        className="w-full bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-4 py-3 font-bold text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 outline-none"
-                                        placeholder="Enter amount"
-                                    />
-                                </div>
-                                <button
-                                    type="submit"
-                                    disabled={paymentLoading}
-                                    className="w-full bg-indigo-600 text-white rounded-xl py-4 font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all disabled:opacity-50"
-                                >
-                                    {paymentLoading ? 'Processing...' : 'Secure Pay'}
-                                </button>
-                            </form>
+
+                            <div className="flex-1 overflow-y-auto p-6 md:p-8 pt-6 custom-scrollbar">
+                                <form onSubmit={handlePayment} className="space-y-6">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-400 dark:text-gray-500 uppercase tracking-widest ml-1">Configure Amount (INR)</label>
+                                        <div className="relative">
+                                            <span className="absolute left-6 top-1/2 -translate-y-1/2 text-2xl font-black text-slate-300 dark:text-gray-600">₹</span>
+                                            <input
+                                                type="number"
+                                                value={paymentAmount}
+                                                onChange={(e) => setPaymentAmount(e.target.value)}
+                                                className="w-full pl-12 pr-6 py-5 bg-slate-50 dark:bg-gray-700 rounded-2xl border-none font-black text-2xl text-slate-800 dark:text-white shadow-inner focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-900/30 transition-all"
+                                                required
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="p-6 bg-indigo-50 dark:bg-indigo-900/20 rounded-[2rem] border border-indigo-100 dark:border-indigo-800/50 flex items-center gap-6">
+                                        <div className="w-16 h-16 bg-white dark:bg-gray-800 rounded-2xl flex items-center justify-center text-indigo-600 dark:text-indigo-400 text-2xl shadow-sm">
+                                            <FaCreditCard />
+                                        </div>
+                                        <div>
+                                            <h4 className="font-bold text-slate-800 dark:text-white text-sm">Secure Online Payment</h4>
+                                            <p className="text-[10px] text-slate-500 dark:text-gray-400 font-medium">Pay via UPI, Cards, or Netbanking using Razorpay gateway.</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <div className="p-4 bg-slate-50 dark:bg-gray-700 rounded-2xl flex items-center gap-3">
+                                            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                                            <p className="text-[10px] font-bold text-slate-400 dark:text-gray-500 uppercase tracking-widest">Gateway: Razorpay (Standard Protocol)</p>
+                                        </div>
+                                    </div>
+
+                                    <button
+                                        type="submit"
+                                        disabled={paymentLoading || !paymentAmount}
+                                        className={`w-full py-5 rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 shadow-xl ${paymentLoading ? 'bg-slate-100 dark:bg-gray-700 text-slate-400 dark:text-gray-500 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-200 dark:shadow-none hover:-translate-y-1'}`}
+                                    >
+                                        {paymentLoading ? (
+                                            <div className="w-5 h-5 border-2 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+                                        ) : (
+                                            <>
+                                                <FaLock /> INITIALIZE SECURE PAYMENT
+                                            </>
+                                        )}
+                                    </button>
+                                    {!paymentLoading && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowPaymentModal(false)}
+                                            className="w-full py-4 text-[10px] font-black text-slate-400 dark:text-gray-500 uppercase tracking-widest hover:text-slate-600 dark:hover:text-slate-300 transition-all"
+                                        >
+                                            Return to Dashboard
+                                        </button>
+                                    )}
+                                    <p className="text-[9px] text-center text-slate-300 dark:text-gray-600 font-bold uppercase tracking-widest italic pt-2">Encrypted Secure Payment Gateway</p>
+                                </form>
+                            </div>
                         </div>
                     </div>
                 )
             }
-        </div >
+
+            {/* Notice Detail Modal */}
+            {
+                selectedNotice && (
+                    <div
+                        onClick={() => setSelectedNotice(null)}
+                        className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300"
+                    >
+                        <div
+                            onClick={e => e.stopPropagation()}
+                            className="bg-white dark:bg-gray-800 w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden border border-slate-100 dark:border-gray-700 animate-in slide-in-from-bottom-6 duration-500"
+                        >
+                            <div className="p-6 md:p-8 border-b border-slate-100 dark:border-gray-700 bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-gray-800 dark:to-gray-900 relative overflow-hidden">
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
+                                <div className="relative z-10 flex items-start justify-between gap-4">
+                                    <div className="flex items-start gap-4 flex-1">
+                                        <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white text-xl shrink-0 shadow-lg">
+                                            <FaBullhorn />
+                                        </div>
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <span className="px-3 py-1 bg-indigo-600 text-white rounded-full text-[8px] font-black uppercase tracking-widest">Broadcast Notice</span>
+                                            </div>
+                                            <h2 className="text-xl md:text-2xl font-black text-slate-800 dark:text-white tracking-tight">{selectedNotice.title}</h2>
+                                            {selectedNotice.createdAt && (
+                                                <p className="text-[9px] font-bold text-slate-500 dark:text-gray-400 uppercase tracking-widest mt-2">
+                                                    Published: {new Date(selectedNotice.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => setSelectedNotice(null)}
+                                        className="w-10 h-10 rounded-xl bg-white/80 dark:bg-gray-700 backdrop-blur-sm text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-white dark:hover:bg-gray-600 transition-all flex items-center justify-center shrink-0"
+                                    >
+                                        <FaTimesCircle className="text-xl" />
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="p-6 md:p-10 max-h-[60vh] overflow-y-auto">
+                                {/* Message Content */}
+                                <div className="mb-6">
+                                    <h3 className="text-sm font-black text-slate-400 dark:text-gray-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                        <FaEnvelopeOpenText className="text-indigo-600 dark:text-indigo-400" />
+                                        Notice Details
+                                    </h3>
+                                    <div className="bg-slate-50 dark:bg-gray-700/50 rounded-2xl p-6 border border-slate-100 dark:border-gray-700">
+                                        <p className="text-base text-slate-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
+                                            {selectedNotice.message || selectedNotice.content || selectedNotice.description || 'No message content available.'}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {selectedNotice.targetRoles && selectedNotice.targetRoles.length > 0 && (
+                                    <div className="p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl border border-indigo-100 dark:border-indigo-800/50">
+                                        <p className="text-[9px] font-black text-slate-400 dark:text-gray-500 uppercase tracking-widest mb-2">Intended Recipients</p>
+                                        <div className="flex flex-wrap gap-2">
+                                            {selectedNotice.targetRoles.map((role, i) => (
+                                                <span key={i} className="px-3 py-1 bg-white dark:bg-gray-800 border border-indigo-200 dark:border-indigo-700 rounded-lg text-[10px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-tight">
+                                                    {role}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="p-6 md:p-8 border-t border-slate-100 dark:border-gray-700 bg-slate-50/50 dark:bg-gray-800/50">
+                                <button
+                                    onClick={() => setSelectedNotice(null)}
+                                    className="w-full py-4 bg-slate-900 dark:bg-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-600 dark:hover:bg-indigo-700 transition-all active:scale-95"
+                                >
+                                    Close Notice
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+        </div>
     );
 };
 

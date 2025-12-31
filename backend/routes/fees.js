@@ -1,4 +1,5 @@
 const express = require('express');
+const router = express.Router();
 const Fee = require('../models/Fee');
 const Notification = require('../models/Notification');
 const Student = require('../models/Student');
@@ -6,20 +7,103 @@ const User = require('../models/User'); // Import User model to be safe
 const auth = require('../middleware/auth');
 const roleAuth = require('../middleware/roleAuth');
 
-const router = express.Router();
+const Razorpay = require('razorpay');
+const crypto = require('crypto');
 
-// Add new fee payment
-router.post('/pay', auth, roleAuth('admin'), async (req, res) => {
+// Initialize Razorpay
+const razorpay = new Razorpay({
+    key_id: process.env.RAZORPAY_KEY_ID,
+    key_secret: process.env.RAZORPAY_KEY_SECRET
+});
+
+// Create Razorpay Order
+router.post('/razorpay/create-order', auth, roleAuth('parent'), async (req, res) => {
+    const { amount, studentId } = req.body;
     try {
-        const { studentId, amount, type, transactionId, remarks } = req.body;
+        const options = {
+            amount: amount * 100, // amount in paise
+            currency: 'INR',
+            receipt: 'receipt_' + Date.now(),
+            notes: { studentId }
+        };
+
+        const order = await razorpay.orders.create(options);
+        res.json(order);
+    } catch (err) {
+        console.error('Razorpay Order Error:', err);
+        res.status(500).json({ message: 'Error creating Razorpay order' });
+    }
+});
+
+// Verify Razorpay Payment
+router.post('/razorpay/verify', auth, roleAuth('parent'), async (req, res) => {
+    const { orderId, paymentId, signature, studentId, amount } = req.body;
+
+    try {
+        // Verify Signature
+        const generated_signature = crypto.createHmac('sha256', process.env.RAZORPAY_KEY_SECRET || 'YOUR_RAZORPAY_KEY_SECRET')
+            .update(orderId + "|" + paymentId)
+            .digest('hex');
+
+        if (generated_signature === signature) {
+            // Payment Success
+            const fee = new Fee({
+                studentId,
+                amount: Number(amount),
+                mode: 'Razorpay',
+                transactionId: paymentId,
+                type: 'Online Payment',
+                status: 'Paid'
+            });
+
+            await fee.save();
+
+            // Find Student Profile for notifications
+            const studentProfile = await Student.findById(studentId);
+            if (studentProfile) {
+                await new Notification({
+                    userId: studentProfile.userId,
+                    title: 'Fee Payment Received',
+                    message: `Payment of ₹${amount} received via Razorpay. Transaction ID: ${paymentId}.`,
+                    type: 'payment'
+                }).save();
+
+                if (studentProfile.parentId) {
+                    await new Notification({
+                        userId: studentProfile.parentId,
+                        title: 'Fee Payment Confirmation',
+                        message: `Payment of ₹${amount} confirmed for child ${studentProfile.name}.`,
+                        type: 'payment'
+                    }).save();
+                }
+            }
+
+            res.json({ message: 'Payment verified and recorded', fee });
+        } else {
+            res.status(400).json({ message: 'Invalid payment signature' });
+        }
+    } catch (err) {
+        console.error('Razorpay Verification Error:', err);
+        res.status(500).json({ message: 'Payment verification failed' });
+    }
+});
+
+// Add new fee payment (Admin or Parent for Manual Pay)
+router.post('/pay', auth, roleAuth('admin', 'parent'), async (req, res) => {
+    try {
+        const { studentId, amount, type, transactionId, remarks, mode } = req.body;
+
+        const isAdmin = req.user.role === 'admin';
+        const status = isAdmin ? 'Paid' : 'Pending';
 
         const fee = new Fee({
             studentId, // Ensure this is the STUDENT Schema ID, not User ID, based on frontend
             amount,
-            type,
+            type: type || 'Direct Payment',
             transactionId,
             remarks,
-            status: 'Paid'
+            mode: mode || 'Cash',
+            status: status
         });
 
         await fee.save();
@@ -30,19 +114,23 @@ router.post('/pay', auth, roleAuth('admin'), async (req, res) => {
         if (studentProfile) {
             // Create Notification for Student
             await new Notification({
-                recipient: studentProfile.userId,
-                title: 'Fee Payment Received',
-                message: `We have received a payment of ₹${amount} for ${type}. Transaction ID: ${transactionId || 'N/A'}. You can download the receipt from your dashboard.`,
-                type: 'fee'
+                userId: studentProfile.userId,
+                title: status === 'Paid' ? 'Fee Payment Received' : 'Payment Submitted',
+                message: status === 'Paid'
+                    ? `We have received a payment of ₹${amount} for ${type || 'fees'}.`
+                    : `Payment proof of ₹${amount} submitted for verification.`,
+                type: 'payment'
             }).save();
 
             // Create Notification for Parent (if linked)
             if (studentProfile.parentId) {
                 await new Notification({
-                    recipient: studentProfile.parentId,
-                    title: 'Fee Payment Confirmation',
-                    message: `Payment of ₹${amount} received for your ward ${studentProfile.name}. You can download the receipt from your dashboard.`,
-                    type: 'fee'
+                    userId: studentProfile.parentId,
+                    title: status === 'Paid' ? 'Fee Payment Confirmation' : 'Payment Submitted',
+                    message: status === 'Paid'
+                        ? `Payment of ₹${amount} received for ${studentProfile.name}.`
+                        : `Payment proof of ₹${amount} submitted for verification for ${studentProfile.name}.`,
+                    type: 'payment'
                 }).save();
             }
         }
@@ -57,11 +145,6 @@ router.post('/pay', auth, roleAuth('admin'), async (req, res) => {
 // Get all fee records (Admin)
 router.get('/all', auth, roleAuth('admin'), async (req, res) => {
     try {
-        // Populate Student details (name, fatherNam, etc.)
-        // Note: studentId in Fee model currently refers to 'User' based on model def, but frontend sends Student ID.
-        // I need to update Fee model ref to 'Student' or populate correctly.
-        // Assuming I update Fee model ref to 'Student' in next step or use deep populate.
-        // Let's assume Fee.studentId is ref 'Student'.
         const fees = await Fee.find()
             .populate('studentId', 'name fatherName totalFee')
             .sort({ date: -1 });
@@ -95,7 +178,7 @@ router.get('/student/:id', auth, async (req, res) => {
         const fees = await Fee.find({ studentId: student._id }).sort({ date: -1 });
 
         const totalFees = student.totalFee || 0;
-        const paidFees = fees.reduce((acc, curr) => acc + curr.amount, 0);
+        const paidFees = fees.reduce((acc, curr) => (curr.status === 'Paid' ? acc + curr.amount : acc), 0);
         const pendingFees = totalFees - paidFees;
 
         res.json({
