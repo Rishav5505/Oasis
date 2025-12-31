@@ -24,7 +24,9 @@ const StudentDashboard = () => {
   const [exams, setExams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [availableClasses, setAvailableClasses] = useState([]);
+  const [availableBatches, setAvailableBatches] = useState([]);
   const [showClassModal, setShowClassModal] = useState(false);
+  const [showBatchModal, setShowBatchModal] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [photoFile, setPhotoFile] = useState(null);
   const [editForm, setEditForm] = useState({
@@ -173,13 +175,19 @@ const StudentDashboard = () => {
         admissionDate: studentData?.admissionDate ? new Date(studentData.admissionDate).toISOString().split('T')[0] : ''
       });
 
-      // Fetch available classes
-      const classesRes = await axios.get('http://localhost:5002/api/users/classes', { headers });
+      // Fetch available metadata
+      const [classesRes, batchesRes] = await Promise.all([
+        axios.get('http://localhost:5002/api/users/classes', { headers }),
+        axios.get('http://localhost:5002/api/users/batches', { headers })
+      ]);
       setAvailableClasses(classesRes.data);
+      setAvailableBatches(batchesRes.data);
 
-      // Check if class selection is needed
+      // Check if class or batch selection is needed
       if (!studentData?.classId) {
         setShowClassModal(true);
+      } else if (!studentData?.batchId) {
+        setShowBatchModal(true);
       }
     } catch (err) {
       console.error('Error in fetchAllData:', err);
@@ -259,10 +267,30 @@ const StudentDashboard = () => {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       setShowClassModal(false);
+
+      // If batch is also missing, show batch modal next
+      if (!student.batchId) {
+        setShowBatchModal(true);
+      }
+
       fetchAllData();
       alert('Class selected successfully!');
     } catch (err) {
       alert('Failed to select class');
+    }
+  };
+
+  const handleBatchSelection = async (batchId) => {
+    try {
+      const token = sessionStorage.getItem('token');
+      await axios.put(`http://localhost:5002/api/users/students/${user.id}`, { batchId }, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      setShowBatchModal(false);
+      fetchAllData();
+      alert('Batch selected successfully!');
+    } catch (err) {
+      alert('Failed to select batch');
     }
   };
 
@@ -446,14 +474,20 @@ const StudentDashboard = () => {
               <div>
                 <h2 className="text-3xl font-bold mb-2">Welcome back, {student.name || profile.name}!</h2>
                 <p className="text-blue-100 mb-4">Ready to continue your learning journey?</p>
-                <div className="flex items-center space-x-4 text-sm">
-                  <span className="flex items-center">
-                    <img src={oasisLogo} alt="Logo" className="w-4 h-4 mr-2 object-contain" />
-                    Class: {student.classId?.name || 'Not Assigned'}
+                <div className="flex items-center space-x-6 text-sm">
+                  <span
+                    onClick={() => setShowClassModal(true)}
+                    className={`flex items-center cursor-pointer px-3 py-1.5 rounded-lg transition-all ${!student.classId ? 'bg-red-500/20 text-red-100 animate-pulse border border-red-400/30' : 'bg-white/10 hover:bg-white/20'}`}
+                  >
+                    <img src={oasisLogo} alt="Logo" className="w-4 h-4 mr-2 object-contain brightness-200" />
+                    Class: {student.classId?.name || 'Click to Select'}
                   </span>
-                  <span className="flex items-center">
+                  <span
+                    onClick={() => setShowBatchModal(true)}
+                    className={`flex items-center cursor-pointer px-3 py-1.5 rounded-lg transition-all ${!student.batchId ? 'bg-orange-500/20 text-orange-100 animate-pulse border border-orange-400/30' : 'bg-white/10 hover:bg-white/20'}`}
+                  >
                     <FaCalendarAlt className="mr-2" />
-                    Batch: {student.batchId?.name || 'Not Assigned'}
+                    Batch: {student.batchId?.name || 'Click to Select'}
                   </span>
                 </div>
               </div>
@@ -1181,6 +1215,48 @@ const StudentDashboard = () => {
               If your class isn't listed, please contact<br />
               the administration office.
             </p>
+          </div>
+        </div>
+      )}
+      {/* Batch Selection Modal */}
+      {showBatchModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-[2rem] p-10 max-w-lg w-full shadow-2xl animate-in zoom-in duration-300 relative">
+            <button
+              onClick={() => setShowBatchModal(false)}
+              className="absolute top-6 right-6 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-all"
+            >
+              <FaTimes className="text-xl" />
+            </button>
+            <div className="text-center mb-10">
+              <div className="w-20 h-20 bg-orange-100 text-orange-600 rounded-[2rem] flex items-center justify-center text-3xl mx-auto mb-6 shadow-lg rotate-3 group-hover:rotate-0 transition-transform">
+                <FaClock />
+              </div>
+              <h2 className="text-3xl font-black text-gray-900 mb-2 tracking-tight">Select Your Batch</h2>
+              <p className="text-gray-500 font-bold uppercase text-[10px] tracking-widest">Choose your preferred timing</p>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4">
+              {availableBatches.length > 0 ? availableBatches.map(b => (
+                <button
+                  key={b._id}
+                  onClick={() => handleBatchSelection(b._id)}
+                  className="group flex items-center justify-between p-6 bg-gray-50 hover:bg-orange-600 rounded-3xl transition-all duration-300 transform hover:-translate-y-1 hover:shadow-xl group"
+                >
+                  <div className="text-left">
+                    <p className="text-lg font-black text-gray-900 group-hover:text-white transition-colors">{b.name}</p>
+                    <p className="text-xs font-bold text-gray-400 group-hover:text-orange-100 transition-colors uppercase">Timing Schedule</p>
+                  </div>
+                  <FaChevronRight className="text-gray-300 group-hover:text-white group-hover:translate-x-1 transition-all" />
+                </button>
+              )) : (
+                <div className="text-center p-8 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200">
+                  <p className="text-gray-500 font-bold">No batches found.</p>
+                  <p className="text-[10px] text-gray-400 mt-2 uppercase">Please ask admin to add batches</p>
+                </div>
+              )}
+            </div>
+            <p className="mt-8 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">Select your shift to see your schedule</p>
           </div>
         </div>
       )}

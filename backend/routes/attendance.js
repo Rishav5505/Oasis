@@ -10,6 +10,47 @@ const sendSMS = require('../utils/sendSMS');
 
 const router = express.Router();
 
+// Bulk mark attendance (teacher only)
+router.post('/bulk', auth, roleAuth('teacher'), async (req, res) => {
+  const { students, date, subjectId } = req.body;
+  try {
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const promises = students.map(async (s) => {
+      const attendance = await Attendance.findOneAndUpdate(
+        { studentId: s.studentId, date: startOfDay, subjectId },
+        { status: s.status, markedBy: req.user.id },
+        { upsert: true, new: true }
+      );
+
+      if (s.status === 'absent') {
+        const student = await Student.findById(s.studentId).populate('parentId');
+        if (student && student.parentId) {
+          const parentId = student.parentId._id || student.parentId;
+          const subject = await require('../models/Subject').findById(subjectId);
+          const message = `Dear Parent, your child ${student.name} was absent in ${subject ? subject.name : 'Class'} on ${date}.`;
+
+          const notification = new Notification({
+            recipient: parentId,
+            title: 'Attendance Alert',
+            message: message,
+            type: 'academic'
+          });
+          await notification.save();
+        }
+      }
+      return attendance;
+    });
+
+    await Promise.all(promises);
+    res.json({ message: 'Bulk attendance updated' });
+  } catch (err) {
+    console.error('Bulk attendance error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // Mark attendance (teacher only)
 router.post('/', auth, roleAuth('teacher'), async (req, res) => {
   const { studentId, date, status, subjectId } = req.body;
@@ -84,6 +125,28 @@ router.get('/student/:studentId', auth, async (req, res) => {
 router.get('/', auth, roleAuth('admin'), async (req, res) => {
   try {
     const attendance = await Attendance.find().populate('studentId').populate('markedBy');
+    res.json(attendance);
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Get attendance for a class, subject, and date
+router.get('/class/:classId/subject/:subjectId/date/:date', auth, async (req, res) => {
+  const { classId, subjectId, date } = req.params;
+  try {
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const students = await Student.find({ classId });
+    const studentIds = students.map(s => s._id);
+
+    const attendance = await Attendance.find({
+      studentId: { $in: studentIds },
+      subjectId,
+      date: startOfDay
+    });
+
     res.json(attendance);
   } catch (err) {
     res.status(500).json({ message: 'Server error' });

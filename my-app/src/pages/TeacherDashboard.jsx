@@ -13,9 +13,10 @@ import oasisFullLogo from '../assets/oasis_full_logo.png';
 const TeacherDashboard = () => {
   const { user } = useContext(AuthContext);
   const [profile, setProfile] = useState({});
-  const [teacherData, setTeacherData] = useState({ subjects: [], batches: [] });
+  const [teacherData, setTeacherData] = useState({ subjects: [], batches: [], classes: [] });
   const [activeTab, setActiveTab] = useState('overview');
   const [loading, setLoading] = useState(true);
+  const [loadingStudents, setLoadingStudents] = useState(false);
 
   const decodeToken = (t) => {
     try {
@@ -52,22 +53,24 @@ const TeacherDashboard = () => {
     if (user?.id) {
       fetchTeacherProfile();
       fetchExams();
-      fetchTeacherProfile();
-      fetchExams();
       fetchMyAttendanceStatus();
       fetchNotices();
 
       const token = sessionStorage.getItem('token');
       if (token) {
         const decoded = decodeToken(token);
-        console.log('Decoded Token Assignments:', decoded?.user);
         if (decoded?.user?.classIds?.length > 0) {
           setSelectedClass(decoded.user.classIds[0]);
-          fetchClassStudents(decoded.user.classIds[0]);
         }
       }
     }
   }, [user]);
+
+  useEffect(() => {
+    if (selectedClass && attendanceSubject && attendanceDate) {
+      fetchAttendanceRecords();
+    }
+  }, [selectedClass, attendanceSubject, attendanceDate]);
 
   const fetchTeacherProfile = async () => {
     const token = sessionStorage.getItem('token');
@@ -150,6 +153,36 @@ const TeacherDashboard = () => {
     }
   };
 
+  const fetchAttendanceRecords = async () => {
+    if (!selectedClass || !attendanceSubject) return;
+    setLoadingStudents(true);
+    const token = sessionStorage.getItem('token');
+    if (!token) return;
+    const headers = { 'Authorization': `Bearer ${token}` };
+    try {
+      // 1. Fetch students for class
+      const studentRes = await axios.get(`http://localhost:5002/api/teacher/classes/${selectedClass}/students`, { headers });
+      setStudents(studentRes.data);
+
+      // 2. Fetch existing attendance for this class/subject/date
+      const attendanceRes = await axios.get(`http://localhost:5002/api/attendance/class/${selectedClass}/subject/${attendanceSubject}/date/${attendanceDate}`, { headers });
+
+      // 3. Merge attendance into status object
+      const initialStatus = {};
+      // Default to 'present' for new entries
+      studentRes.data.forEach(s => initialStatus[s._id] = 'present');
+      // Override with existing data from server
+      attendanceRes.data.forEach(a => {
+        initialStatus[a.studentId] = a.status;
+      });
+      setAttendanceData(initialStatus);
+    } catch (err) {
+      console.error('Error fetching attendance records:', err);
+    } finally {
+      setLoadingStudents(false);
+    }
+  };
+
   const fetchClassStudents = async (classId, type = 'attendance') => {
     const token = sessionStorage.getItem('token');
     if (!token) return;
@@ -170,30 +203,33 @@ const TeacherDashboard = () => {
   };
 
   const handleMarkAttendance = async () => {
-    if (!attendanceSubject) {
-      alert('Please select a subject');
+    if (!attendanceSubject || !selectedClass) {
+      alert('Please select Class and Subject');
       return;
     }
     const token = sessionStorage.getItem('token');
-    if (!token) {
-      alert('Session expired. Please login again.');
-      return;
-    }
+    if (!token) return;
     const headers = { 'Authorization': `Bearer ${token}` };
 
+    const studentsToSave = Object.keys(attendanceData).map(studentId => ({
+      studentId,
+      status: attendanceData[studentId]
+    }));
+
+    setLoadingStudents(true);
     try {
-      const promises = Object.keys(attendanceData).map(studentId =>
-        axios.post('http://localhost:5002/api/attendance', {
-          studentId,
-          date: attendanceDate,
-          status: attendanceData[studentId],
-          subjectId: attendanceSubject
-        }, { headers })
-      );
-      await Promise.all(promises);
-      alert('Attendance marked successfully for the entire batch!');
+      await axios.post('http://localhost:5002/api/attendance/bulk', {
+        students: studentsToSave,
+        date: attendanceDate,
+        subjectId: attendanceSubject
+      }, { headers });
+
+      alert('Attendance synced successfully for ' + studentsToSave.length + ' students!');
+      fetchAttendanceRecords(); // Refresh to confirm
     } catch (err) {
-      alert('Failed to mark attendance');
+      alert('Failed to sync attendance: ' + (err.response?.data?.message || 'Server error'));
+    } finally {
+      setLoadingStudents(false);
     }
   };
 
@@ -428,12 +464,9 @@ const TeacherDashboard = () => {
                     <select
                       className="w-full md:w-auto px-6 py-3.5 bg-gray-50 rounded-2xl border-none font-bold text-sm text-gray-600 focus:outline-none"
                       value={selectedClass}
-                      onChange={(e) => {
-                        setSelectedClass(e.target.value);
-                        fetchClassStudents(e.target.value);
-                      }}
+                      onChange={(e) => setSelectedClass(e.target.value)}
                     >
-                      <option value="">Select Class</option>
+                      <option value="">{teacherData.classes?.length === 0 ? 'No Classes Assigned' : 'Select Class'}</option>
                       {teacherData.classes?.map(c => (
                         <option key={c._id} value={c._id}>{c.name}</option>
                       ))}
@@ -459,14 +492,31 @@ const TeacherDashboard = () => {
 
                 <button
                   onClick={handleMarkAttendance}
-                  disabled={!selectedClass}
+                  disabled={!selectedClass || !attendanceSubject || students.length === 0}
                   className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white py-5 rounded-2xl font-black text-sm shadow-xl shadow-emerald-200/50 transition-all disabled:opacity-50 hover:scale-[1.01]"
                 >
-                  FINALIZE AND SAVE ATTENDANCE
+                  {loadingStudents ? 'LOADING RECORDS...' : 'FINALIZE AND SAVE ATTENDANCE'}
                 </button>
               </div>
 
-              {selectedClass && (
+              {!selectedClass || !attendanceSubject ? (
+                <div className="bg-white p-20 rounded-[3rem] border-4 border-dashed border-gray-100 flex flex-col items-center justify-center text-gray-300 text-center">
+                  <FaUserClock className="text-6xl mb-6 opacity-20" />
+                  <p className="font-bold text-lg">Please select Class & Subject</p>
+                  <p className="text-sm">Student list will appear automatically after selection</p>
+                </div>
+              ) : loadingStudents ? (
+                <div className="py-20 flex flex-col items-center justify-center text-emerald-500">
+                  <div className="animate-spin rounded-full h-12 w-12 border-4 border-emerald-500 border-t-transparent mb-4"></div>
+                  <p className="font-bold">Syncing Student Records...</p>
+                </div>
+              ) : students.length === 0 ? (
+                <div className="bg-white p-20 rounded-[3rem] border-4 border-dashed border-red-50 flex flex-col items-center justify-center text-red-200 text-center">
+                  <FaUsers className="text-6xl mb-6 opacity-20" />
+                  <p className="font-bold text-lg text-red-300">No Students Found</p>
+                  <p className="text-sm">There are no students enrolled in this class.</p>
+                </div>
+              ) : (
                 <div className="bg-white rounded-[2rem] md:rounded-[3rem] border border-gray-100 shadow-xl overflow-hidden p-2 md:p-4 overflow-x-auto">
                   <table className="w-full text-left min-w-[600px] md:min-w-0">
                     <thead>

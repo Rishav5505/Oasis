@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTheme } from '../contexts/ThemeContext';
-import { FiSun, FiMoon } from 'react-icons/fi';
+import { FiSun, FiMoon, FiX } from 'react-icons/fi';
 import oasisLogo from '../assets/oasis_logo.png';
 import oasisBannerLogo from '../assets/oasis_banner_new.png';
 
@@ -85,9 +85,25 @@ const Navbar = () => {
         </div>
       </div>
 
-      {/* Mobile Menu Overlay */}
-      <div className={`fixed inset-0 bg-white dark:bg-gray-950 z-40 lg:hidden transition-all duration-300 ease-in-out ${isOpen ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-full pointer-events-none'}`}>
-        <div className="flex flex-col h-full justify-center items-center space-y-8 p-8">
+      {/* Mobile Menu Backdrop */}
+      <div
+        className={`fixed inset-0 bg-black/60 z-[60] lg:hidden transition-opacity duration-300 backdrop-blur-sm ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+        onClick={() => setIsOpen(false)}
+      />
+
+      {/* Side Navigation Drawer */}
+      <div className={`fixed top-0 right-0 h-screen w-72 bg-white dark:bg-black z-[70] shadow-2xl transform transition-transform duration-300 cubic-bezier(0.4, 0, 0.2, 1) ${isOpen ? 'translate-x-0' : 'translate-x-full'} lg:hidden flex flex-col border-l border-gray-100 dark:border-gray-800`}>
+        <div className="p-6 flex items-center justify-between border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50">
+          <span className="text-lg font-black text-gray-800 dark:text-gray-100 tracking-tight">Navigation</span>
+          <button
+            onClick={() => setIsOpen(false)}
+            className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors text-gray-500 dark:text-gray-400"
+          >
+            <FiX className="w-6 h-6" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-6 space-y-1">
           {[
             { name: 'Home', path: '/' },
             { name: 'About', path: '/about' },
@@ -96,25 +112,26 @@ const Navbar = () => {
             { name: 'Results', path: '/results' },
             { name: 'Gallery', path: '/gallery' },
             { name: 'Contact', path: '/contact' },
-          ].map((link, idx) => (
+          ].map((link) => (
             <Link
               key={link.path}
               to={link.path}
-              className={`text-2xl font-bold text-gray-800 dark:text-gray-100 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all duration-300 transform ${isOpen ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}
-              style={{ transitionDelay: `${idx * 50}ms` }}
+              className="block px-4 py-3 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-indigo-50 dark:hover:bg-gray-800 hover:text-indigo-600 dark:hover:text-indigo-400 font-bold text-sm uppercase tracking-wider transition-all"
               onClick={() => setIsOpen(false)}
             >
               {link.name}
             </Link>
           ))}
-          <Link
-            to="/login"
-            className={`mt-4 bg-indigo-600 text-white px-10 py-4 rounded-xl text-xl font-bold shadow-xl shadow-indigo-200 transform transition-all duration-300 hover:scale-105 ${isOpen ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}
-            style={{ transitionDelay: '400ms' }}
-            onClick={() => setIsOpen(false)}
-          >
-            Student Login
-          </Link>
+
+          <div className="pt-6 mt-6 border-t border-gray-100 dark:border-gray-800">
+            <Link
+              to="/login"
+              className="block w-full text-center bg-indigo-600 text-white px-6 py-4 rounded-xl font-black text-sm uppercase tracking-wider shadow-lg shadow-indigo-200 dark:shadow-none hover:bg-indigo-700 transition-all active:scale-95"
+              onClick={() => setIsOpen(false)}
+            >
+              Student Login
+            </Link>
+          </div>
         </div>
       </div>
     </nav>

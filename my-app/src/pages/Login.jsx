@@ -16,6 +16,9 @@ const Login = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Clear any existing session to prevent stale state issues
+    sessionStorage.clear();
+
     const queryRole = searchParams.get('role');
     if (queryRole) setRole(queryRole);
   }, [searchParams]);
