@@ -78,18 +78,18 @@ router.post('/razorpay/verify', auth, roleAuth('parent'), async (req, res) => {
             const studentProfile = await Student.findById(studentId);
             if (studentProfile) {
                 await new Notification({
-                    userId: studentProfile.userId,
+                    recipient: studentProfile.userId,
                     title: 'Fee Payment Received',
                     message: `Payment of ₹${amount} received via Razorpay. Transaction ID: ${paymentId}.`,
-                    type: 'payment'
+                    type: 'fee'
                 }).save();
 
                 if (studentProfile.parentId) {
                     await new Notification({
-                        userId: studentProfile.parentId,
+                        recipient: studentProfile.parentId,
                         title: 'Fee Payment Confirmation',
                         message: `Payment of ₹${amount} confirmed for child ${studentProfile.name}.`,
-                        type: 'payment'
+                        type: 'fee'
                     }).save();
                 }
             }
@@ -130,23 +130,23 @@ router.post('/pay', auth, roleAuth('admin', 'parent'), async (req, res) => {
         if (studentProfile) {
             // Create Notification for Student
             await new Notification({
-                userId: studentProfile.userId,
+                recipient: studentProfile.userId,
                 title: status === 'Paid' ? 'Fee Payment Received' : 'Payment Submitted',
                 message: status === 'Paid'
                     ? `We have received a payment of ₹${amount} for ${type || 'fees'}.`
                     : `Payment proof of ₹${amount} submitted for verification.`,
-                type: 'payment'
+                type: 'fee'
             }).save();
 
             // Create Notification for Parent (if linked)
             if (studentProfile.parentId) {
                 await new Notification({
-                    userId: studentProfile.parentId,
+                    recipient: studentProfile.parentId,
                     title: status === 'Paid' ? 'Fee Payment Confirmation' : 'Payment Submitted',
                     message: status === 'Paid'
                         ? `Payment of ₹${amount} received for ${studentProfile.name}.`
                         : `Payment proof of ₹${amount} submitted for verification for ${studentProfile.name}.`,
-                    type: 'payment'
+                    type: 'fee'
                 }).save();
             }
         }

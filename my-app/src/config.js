@@ -9,13 +9,13 @@ const config = {
 
     // Payment Gateway Configuration
     PAYMENT: {
-        PROVIDER: "Stripe", // 'Razorpay' or 'Stripe'
+        PROVIDER: "Razorpay", // 'Razorpay' or 'Stripe'
 
         // Stripe Public Key (Publishable Key)
         STRIPE_PUBLIC_KEY: "", // To be provided via environment/build
 
         // Razorpay Key ID
-        RAZORPAY_KEY_ID: "" // To be provided via environment/build
+        RAZORPAY_KEY_ID: "rzp_test_RyDk9obH1c0TIc" // To be provided via environment/build
     },
 
     // Feature Flags

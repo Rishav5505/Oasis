@@ -48,7 +48,7 @@ const ParentDashboard = () => {
     // Payment State
     const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [paymentAmount, setPaymentAmount] = useState('');
-    const [paymentMethod, setPaymentMethod] = useState('UPI');
+    const [paymentMethod, setPaymentMethod] = useState('Razorpay');
     const [paymentLoading, setPaymentLoading] = useState(false);
     const [paymentDetails, setPaymentDetails] = useState({ ref: '', bankName: '', remarks: '' });
 
@@ -1033,12 +1033,15 @@ const ParentDashboard = () => {
                                         </div>
                                     </div>
 
-                                    <div className="p-6 bg-indigo-50 dark:bg-indigo-900/20 rounded-[2rem] border border-indigo-100 dark:border-indigo-800/50 flex items-center gap-6">
-                                        <div className="w-16 h-16 bg-white dark:bg-gray-800 rounded-2xl flex items-center justify-center text-indigo-600 dark:text-indigo-400 text-2xl shadow-sm">
+                                    <div
+                                        onClick={() => setPaymentMethod('Razorpay')}
+                                        className={`p-6 rounded-[2rem] border transition-all cursor-pointer flex items-center gap-6 ${paymentMethod === 'Razorpay' ? 'bg-indigo-50 dark:bg-indigo-900/30 border-indigo-500 shadow-lg' : 'bg-slate-50 dark:bg-gray-700/50 border-transparent hover:bg-slate-100'}`}
+                                    >
+                                        <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-2xl shadow-sm transition-colors ${paymentMethod === 'Razorpay' ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-gray-800 text-indigo-600'}`}>
                                             <FaCreditCard />
                                         </div>
                                         <div>
-                                            <h4 className="font-bold text-slate-800 dark:text-white text-sm">Secure Online Payment</h4>
+                                            <h4 className={`font-bold text-sm transition-colors ${paymentMethod === 'Razorpay' ? 'text-indigo-900 dark:text-indigo-200' : 'text-slate-800 dark:text-white'}`}>Secure Online Payment</h4>
                                             <p className="text-[10px] text-slate-500 dark:text-gray-400 font-medium">Pay via UPI, Cards, or Netbanking using Razorpay gateway.</p>
                                         </div>
                                     </div>
