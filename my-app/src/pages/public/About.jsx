@@ -31,7 +31,7 @@ const About = () => {
 
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 tracking-tight leading-tight animate-fade-in-up flex items-center justify-center gap-4" style={{ animationDelay: '0.1s' }}>
             <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-xl overflow-hidden p-2">
-              <img src={oasisLogo} alt="Oasis Logo" className="w-full h-full object-contain" />
+              <img src={oasisLogo} alt="Oasis Logo" loading="lazy" className="w-full h-full object-contain" />
             </div>
             <span>About <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400">Oasis JEE Classes</span></span>
           </h1>

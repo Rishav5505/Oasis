@@ -349,7 +349,7 @@ const Home = () => {
                 <div key={member.id} className="bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 p-6 text-center">
                   <div className="w-24 h-24 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white text-4xl mx-auto mb-4">
                     {member.photo ? (
-                      <img src={member.photo} alt={member.name} className="w-full h-full rounded-full object-cover" />
+                      <img src={member.photo} alt={member.name} loading="lazy" className="w-full h-full rounded-full object-cover" />
                     ) : (
                       '👨‍🏫'
                     )}
