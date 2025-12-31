@@ -662,17 +662,18 @@ const AdminDashboard = () => {
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col overflow-hidden w-full">
-        {/* Header bar */}
-        <header className="h-20 bg-white border-b border-gray-100 flex items-center justify-between px-6 lg:px-10 shadow-sm z-10 w-full">
-          <div className="flex items-center gap-6 flex-1 max-w-2xl text-gray-400">
-            <div className="flex items-center gap-4 w-full">
+        {/* Header bar - Responsive Search */}
+        <header className="h-20 bg-white border-b border-gray-100 flex items-center justify-between px-4 lg:px-10 shadow-sm z-10 w-full">
+          <div className="flex items-center gap-3 lg:gap-6 flex-1 max-w-2xl text-gray-400">
+            <div className="flex items-center gap-2 lg:gap-4 w-full">
               <button
                 onClick={() => setIsSidebarOpen(true)}
-                className="lg:hidden p-2 bg-gray-50 rounded-xl text-indigo-600"
+                className="lg:hidden p-2 bg-gray-50 rounded-xl text-indigo-600 flex-shrink-0"
               >
                 <FaTasks className="text-xl" />
               </button>
-              <div className="flex items-center gap-2 w-full">
+              {/* Desktop: Full search bar, Mobile: Icon only */}
+              <div className="hidden md:flex items-center gap-2 w-full">
                 <FaSearch className="text-gray-300" />
                 <input
                   type="text"
@@ -682,6 +683,10 @@ const AdminDashboard = () => {
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
+              {/* Mobile: Search Icon Button */}
+              <button className="md:hidden p-2 bg-gray-50 rounded-xl text-gray-400 hover:text-indigo-600 transition-colors flex-shrink-0">
+                <FaSearch className="text-lg" />
+              </button>
             </div>
           </div>
           <div className="flex items-center gap-8">
@@ -701,31 +706,31 @@ const AdminDashboard = () => {
         <div className="flex-1 overflow-y-auto p-4 md:p-10 space-y-6 md:space-y-10 scroll-smooth">
           {activeTab === 'overview' && (
             <>
-              {/* Vibrant Welcome Banner */}
-              <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-r from-violet-600 via-indigo-600 to-purple-600 p-10 shadow-2xl shadow-indigo-200/50 mb-10 text-white relative">
+              {/* Vibrant Welcome Banner - Mobile Optimized */}
+              <div className="relative overflow-hidden rounded-[1.5rem] md:rounded-[2.5rem] bg-gradient-to-r from-violet-600 via-indigo-600 to-purple-600 p-6 md:p-10 shadow-2xl shadow-indigo-200/50 mb-10 text-white">
                 <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 bg-white/10 blur-3xl rounded-full pointer-events-none"></div>
                 <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-60 h-60 bg-pink-500/20 blur-3xl rounded-full pointer-events-none"></div>
 
-                <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                <div className="relative z-10 flex flex-col gap-6">
                   <div>
-                    <div className="flex items-center gap-3 mb-2">
-                      <span className="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-white/10">Admin Console</span>
-                      <span className="text-indigo-200 text-xs font-bold">{new Date().toDateString()}</span>
+                    <div className="flex flex-wrap items-center gap-2 md:gap-3 mb-3">
+                      <span className="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-widest border border-white/10">Admin Console</span>
+                      <span className="text-indigo-200 text-[10px] md:text-xs font-bold">{new Date().toDateString()}</span>
                     </div>
-                    <h1 className="text-4xl md:text-5xl font-[900] tracking-tight mb-2 leading-tight">
+                    <h1 className="text-2xl md:text-4xl lg:text-5xl font-[900] tracking-tight mb-3 md:mb-2 leading-tight">
                       Namaste, <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-200 to-indigo-100">{profile.name?.split(' ')[0] || 'Admin'}</span> 👋
                     </h1>
-                    <p className="text-indigo-100 font-medium max-w-lg text-sm leading-relaxed opacity-90">
+                    <p className="text-indigo-100 font-medium max-w-lg text-xs md:text-sm leading-relaxed opacity-90">
                       You have <span className="font-black text-white underline decoration-pink-400 decoration-2 underline-offset-4">{stats.totalStudents || 0} active students</span> and <span className="font-black text-white">{stats.presentToday || 0}</span> students present today.
-                      <br />
+                      <br className="hidden md:block" />
                       <span className="font-black text-emerald-300">{stats.presentTeachers || 0} Teachers</span> have checked in.
                     </p>
                   </div>
-                  <div className="flex gap-4">
-                    <button onClick={() => setActiveTab('communication')} className="bg-white text-indigo-600 px-6 py-3 rounded-2xl font-black text-xs shadow-lg hover:bg-indigo-50 transition-all flex items-center gap-2 group">
+                  <div className="flex flex-col sm:flex-row gap-3 md:gap-4">
+                    <button onClick={() => setActiveTab('communication')} className="bg-white text-indigo-600 px-5 md:px-6 py-3 rounded-2xl font-black text-[10px] md:text-xs shadow-lg hover:bg-indigo-50 transition-all flex items-center justify-center gap-2 group">
                       <FaBullhorn className="group-hover:rotate-12 transition-transform" /> POST UPDATE
                     </button>
-                    <button onClick={() => alert('System report downloading...')} className="bg-indigo-800/40 text-white border border-white/20 px-6 py-3 rounded-2xl font-black text-xs hover:bg-indigo-800/60 transition-all backdrop-blur-md">
+                    <button onClick={() => alert('System report downloading...')} className="bg-indigo-800/40 text-white border border-white/20 px-5 md:px-6 py-3 rounded-2xl font-black text-[10px] md:text-xs hover:bg-indigo-800/60 transition-all backdrop-blur-md">
                       VIEW REPORTS
                     </button>
                   </div>
@@ -930,68 +935,70 @@ const AdminDashboard = () => {
                 </div>
               </div>
 
-              <div className="bg-white rounded-[2rem] md:rounded-[3rem] border border-gray-100 shadow-sm overflow-x-auto p-2">
-                <table className="w-full text-left border-collapse min-w-[700px]">
-                  <thead>
-                    <tr className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
-                      <th className="px-6 md:px-8 py-6">Identity</th>
-                      <th className="px-6 md:px-8 py-6">Classification</th>
-                      <th className="px-6 md:px-8 py-6">Linked Guardian</th>
-                      <th className="px-6 md:px-8 py-6">Engagement</th>
-                      <th className="px-6 md:px-8 py-6 text-right">Interactions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {filteredStudents.map(student => (
-                      <tr
-                        key={student._id}
-                        className="group hover:bg-indigo-50/30 transition-all cursor-pointer"
-                        onClick={() => handleStudentClick(student)}
-                      >
-                        <td className="px-8 py-6">
-                          <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center shadow-sm overflow-hidden p-2 group-hover:scale-110 transition-all">
-                              <img src={oasisLogo} alt="Oasis Logo" className="w-full h-full object-contain opacity-40 group-hover:opacity-100 transition-all" />
-                            </div>
-                            <div>
-                              <p className="font-bold text-gray-900 text-sm group-hover:text-indigo-600 transition-colors">{student.name}</p>
-                              <p className="text-xs text-gray-400 font-medium">{student.email}</p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-8 py-6">
-                          <span className="text-xs font-bold text-gray-600 bg-gray-50 px-4 py-1.5 rounded-full border border-gray-100">Grade {student.classId?.name || 'NA'}</span>
-                        </td>
-                        <td className="px-8 py-6">
-                          {student.parentId ? (
-                            <div className="flex items-center gap-2">
-                              <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
+              <div className="bg-white rounded-[1.5rem] md:rounded-[3rem] border border-gray-100 shadow-sm overflow-x-auto">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse min-w-[600px]">
+                    <thead>
+                      <tr className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
+                        <th className="px-6 md:px-8 py-6">Identity</th>
+                        <th className="px-6 md:px-8 py-6">Classification</th>
+                        <th className="px-6 md:px-8 py-6">Linked Guardian</th>
+                        <th className="px-6 md:px-8 py-6">Engagement</th>
+                        <th className="px-6 md:px-8 py-6 text-right">Interactions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {filteredStudents.map(student => (
+                        <tr
+                          key={student._id}
+                          className="group hover:bg-indigo-50/30 transition-all cursor-pointer"
+                          onClick={() => handleStudentClick(student)}
+                        >
+                          <td className="px-8 py-6">
+                            <div className="flex items-center gap-4">
+                              <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center shadow-sm overflow-hidden p-2 group-hover:scale-110 transition-all">
+                                <img src={oasisLogo} alt="Oasis Logo" className="w-full h-full object-contain opacity-40 group-hover:opacity-100 transition-all" />
+                              </div>
                               <div>
-                                <p className="text-xs font-bold text-gray-900 leading-tight">{student.parentId.name}</p>
-                                <p className="text-[10px] text-gray-400 font-medium">{student.parentId.email}</p>
+                                <p className="font-bold text-gray-900 text-sm group-hover:text-indigo-600 transition-colors">{student.name}</p>
+                                <p className="text-xs text-gray-400 font-medium">{student.email}</p>
                               </div>
                             </div>
-                          ) : (
-                            <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest italic">Not Linked</span>
-                          )}
-                        </td>
-                        <td className="px-8 py-6">
-                          <div className="flex items-center gap-4">
-                            <div className="flex-1 w-24 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                              <div className="h-full bg-emerald-500 rounded-full" style={{ width: '82%' }}></div>
+                          </td>
+                          <td className="px-8 py-6">
+                            <span className="text-xs font-bold text-gray-600 bg-gray-50 px-4 py-1.5 rounded-full border border-gray-100">Grade {student.classId?.name || 'NA'}</span>
+                          </td>
+                          <td className="px-8 py-6">
+                            {student.parentId ? (
+                              <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
+                                <div>
+                                  <p className="text-xs font-bold text-gray-900 leading-tight">{student.parentId.name}</p>
+                                  <p className="text-[10px] text-gray-400 font-medium">{student.parentId.email}</p>
+                                </div>
+                              </div>
+                            ) : (
+                              <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest italic">Not Linked</span>
+                            )}
+                          </td>
+                          <td className="px-8 py-6">
+                            <div className="flex items-center gap-4">
+                              <div className="flex-1 w-24 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                <div className="h-full bg-emerald-500 rounded-full" style={{ width: '82%' }}></div>
+                              </div>
+                              <span className="text-[10px] font-black text-emerald-600">82%</span>
                             </div>
-                            <span className="text-[10px] font-black text-emerald-600">82%</span>
-                          </div>
-                        </td>
-                        <td className="px-8 py-6 text-right">
-                          <button className="p-3 hover:bg-white rounded-xl text-gray-400 hover:text-indigo-600 transition-all hover:shadow-md">
-                            <FaChevronRight className="text-xs" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                          </td>
+                          <td className="px-8 py-6 text-right">
+                            <button className="p-3 hover:bg-white rounded-xl text-gray-400 hover:text-indigo-600 transition-all hover:shadow-md">
+                              <FaChevronRight className="text-xs" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
                 {/* Student Details & Linking Section */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-10">
                   {selectedStudent && (
