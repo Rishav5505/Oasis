@@ -21,6 +21,7 @@ const StudentDashboard = () => {
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [selectedNotice, setSelectedNotice] = useState(null);
+  const [selectedSubject, setSelectedSubject] = useState('All');
   const [exams, setExams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [availableClasses, setAvailableClasses] = useState([]);
@@ -275,6 +276,16 @@ const StudentDashboard = () => {
     if (uniqueDates.length === 0) return 0;
     return Math.round((presentDates.length / uniqueDates.length) * 100);
   };
+
+  // Filtered Attendance for Overview
+  const filteredAttendance = selectedSubject === 'All'
+    ? attendance
+    : attendance.filter(a => a.subjectId?.name === selectedSubject);
+
+  const filteredPresent = filteredAttendance.filter(a => a.status === 'present').length;
+  const filteredTotal = filteredAttendance.length;
+  const filteredPercentage = filteredTotal > 0 ? Math.round((filteredPresent / filteredTotal) * 100) : 0;
+  const subjects = ['All', ...new Set(attendance.map(a => a.subjectId?.name).filter(Boolean))];
 
   const renderCalendar = () => {
     const days = [];
@@ -937,48 +948,70 @@ const StudentDashboard = () => {
           {/* Left Column - Attendance & Marks */}
           <div className="lg:col-span-2 space-y-8">
             {/* Attendance Section */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center justify-between mb-6">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900 mb-1">Attendance Overview</h2>
-                  <p className="text-gray-600 text-sm">Your attendance record for this month</p>
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-1">Attendance Overview</h2>
+                  <p className="text-gray-600 dark:text-gray-400 text-sm">Your attendance record</p>
                 </div>
-                <div className="text-right">
-                  <div className="text-3xl font-bold text-green-600">{calculateAttendancePercentage()}%</div>
-                  <div className="text-sm text-gray-500">Present</div>
-                </div>
-              </div>
-
-              <div className="mb-6">
-                <div className="flex justify-between text-sm text-gray-600 mb-2">
-                  <span>Monthly Progress</span>
-                  <span>{attendance.filter(a => a.status === 'present').length}/{attendance.length} days</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-3">
-                  <div
-                    className="bg-gradient-to-r from-green-400 to-green-600 h-3 rounded-full transition-all duration-500"
-                    style={{ width: `${calculateAttendancePercentage()}%` }}
-                  ></div>
-                </div>
-              </div>
-
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-4">Last 30 Days</h3>
-                <div className="grid grid-cols-10 gap-2">
-                  {renderCalendar().map((day, index) => (
-                    <div
-                      key={index}
-                      className={`aspect-square rounded-xl flex items-center justify-center text-[10px] font-black border-2 transition-all hover:scale-110 cursor-help ${day.status === 'present'
-                        ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
-                        : day.status === 'absent'
-                          ? 'bg-red-100 text-red-800 border-red-200'
-                          : 'bg-gray-50 text-gray-400 border-gray-100'
-                        }`}
-                      title={day.status === 'none' ? 'No session recorded' : `Status: ${day.status}`}
-                    >
-                      {day.date}
-                    </div>
+                <select
+                  value={selectedSubject}
+                  onChange={(e) => setSelectedSubject(e.target.value)}
+                  className="bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-4 py-2 font-bold text-sm text-indigo-600 dark:text-indigo-400 focus:ring-0 cursor-pointer outline-none transition-colors w-full sm:w-auto"
+                >
+                  {subjects.map(sub => (
+                    <option key={sub} value={sub}>{sub}</option>
                   ))}
+                </select>
+              </div>
+
+              {/* Summary Stats Input */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+                <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-2xl border border-gray-100 dark:border-gray-700">
+                  <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">Total</p>
+                  <p className="text-2xl font-black text-gray-900 dark:text-white">{filteredTotal}</p>
+                </div>
+                <div className="bg-emerald-50 dark:bg-emerald-900/10 p-4 rounded-2xl border border-emerald-100 dark:border-emerald-800">
+                  <p className="text-[10px] font-bold text-emerald-600/70 dark:text-emerald-500 uppercase tracking-widest mb-1">Present</p>
+                  <p className="text-2xl font-black text-emerald-600 dark:text-emerald-500">{filteredPresent}</p>
+                </div>
+                <div className="bg-rose-50 dark:bg-rose-900/10 p-4 rounded-2xl border border-rose-100 dark:border-rose-800">
+                  <p className="text-[10px] font-bold text-rose-600/70 dark:text-rose-500 uppercase tracking-widest mb-1">Absent</p>
+                  <p className="text-2xl font-black text-rose-600 dark:text-rose-500">{filteredTotal - filteredPresent}</p>
+                </div>
+                <div className="bg-blue-50 dark:bg-blue-900/10 p-4 rounded-2xl border border-blue-100 dark:border-blue-800">
+                  <p className="text-[10px] font-bold text-blue-600/70 dark:text-blue-500 uppercase tracking-widest mb-1">Rate</p>
+                  <p className={`text-2xl font-black ${filteredPercentage >= 75 ? 'text-blue-600 dark:text-blue-400' : 'text-rose-500'}`}>{filteredPercentage}%</p>
+                </div>
+              </div>
+
+              {/* Scrollable List */}
+              <div>
+                <h3 className="font-semibold text-gray-900 dark:text-white mb-4 text-sm uppercase tracking-wider">Recent Logs</h3>
+                <div className="max-h-64 overflow-y-auto custom-scrollbar pr-2 space-y-3">
+                  {filteredAttendance.length > 0 ? filteredAttendance.map(a => (
+                    <div key={a._id} className={`p-4 rounded-2xl border transition-colors flex items-center justify-between group ${a.status === 'present' ? 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 hover:border-emerald-200 dark:hover:border-emerald-800' : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 hover:border-rose-200 dark:hover:border-rose-800'}`}>
+                      <div className="flex items-center gap-4">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg font-bold ${a.status === 'present' ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`}>
+                          {new Date(a.date).getDate()}
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">{new Date(a.date).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}</p>
+                          <div className="flex items-center gap-2">
+                            <span className={`font-black text-sm uppercase ${a.status === 'present' ? 'text-gray-800 dark:text-gray-200' : 'text-red-500'}`}>{a.status}</span>
+                            {a.subjectId?.name && (
+                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 font-bold border border-gray-200 dark:border-gray-600">{a.subjectId.name}</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className={`w-2 h-2 rounded-full ${a.status === 'present' ? 'bg-emerald-500' : 'bg-rose-500'}`}></div>
+                    </div>
+                  )) : (
+                    <div className="text-center py-8 text-gray-400 dark:text-gray-500">
+                      No records found.
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

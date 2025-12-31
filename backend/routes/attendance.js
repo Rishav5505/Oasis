@@ -73,7 +73,9 @@ router.get('/student/:studentId', auth, async (req, res) => {
     }
     // Teacher and admin can view
 
-    const attendance = await Attendance.find({ studentId: student._id });
+    const attendance = await Attendance.find({ studentId: student._id })
+      .populate('subjectId', 'name')
+      .sort({ date: -1 }); // Sort by new implementation
     res.json(attendance);
   } catch (err) {
     res.status(500).json({ message: 'Server error' });

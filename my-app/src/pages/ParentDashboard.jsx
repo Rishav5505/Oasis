@@ -25,8 +25,10 @@ const ParentDashboard = () => {
     const [notices, setNotices] = useState([]);
     const [fees, setFees] = useState({});
     const [notifications, setNotifications] = useState([]);
+    const [selectedSubject, setSelectedSubject] = useState('All');
     const [activeTab, setActiveTab] = useState('Overview');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
 
     // Payment State
     const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -175,6 +177,35 @@ const ParentDashboard = () => {
         }
     };
 
+    const handleMarkAllRead = async () => {
+        const token = sessionStorage.getItem('token');
+        if (!token) return;
+        try {
+            await axios.patch('http://localhost:5002/api/notifications/read-all', {}, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            // Update local state
+            setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+        } catch (err) {
+            console.error('Error marking notifications as read:', err);
+        }
+    };
+
+    const toggleNotifications = (e) => {
+        e.stopPropagation();
+        setIsNotificationsOpen(!isNotificationsOpen);
+    };
+
+    // Close notifications when clicking outside
+    useEffect(() => {
+        const closeNotifications = () => setIsNotificationsOpen(false);
+        if (isNotificationsOpen) {
+            window.addEventListener('click', closeNotifications);
+        }
+        return () => window.removeEventListener('click', closeNotifications);
+    }, [isNotificationsOpen]);
+
+
     const handleDownloadReceipt = (payment) => {
         const receiptContent = `
             <html>
@@ -225,6 +256,17 @@ const ParentDashboard = () => {
     const attendancePercentage = totalDays > 0 ? Math.round((presentDays / totalDays) * 100) : 0;
     const avgMarks = marks.length > 0 ? Math.round(marks.reduce((a, b) => a + b.marks, 0) / marks.length) : 0;
 
+    // Filtered Attendance for Tab
+    const filteredAttendance = selectedSubject === 'All'
+        ? attendance
+        : attendance.filter(a => a.subjectId?.name === selectedSubject);
+
+    // Filtered Stats
+    const filteredPresent = filteredAttendance.filter(a => a.status === 'present').length;
+    const filteredTotal = filteredAttendance.length;
+    const filteredPercentage = filteredTotal > 0 ? Math.round((filteredPresent / filteredTotal) * 100) : 0;
+    const subjects = ['All', ...new Set(attendance.map(a => a.subjectId?.name).filter(Boolean))];
+
     // Charts with TEAL Theme
     const performanceData = {
         labels: marks.map(m => m.subjectId?.name || m.examId?.name || 'Test'),
@@ -250,7 +292,7 @@ const ParentDashboard = () => {
     if (authLoading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
 
     return (
-        <div className="flex h-screen bg-[#F8FAFC] overflow-hidden relative font-sans">
+        <div className="flex h-screen bg-[#F8FAFC] dark:bg-gray-950 overflow-hidden relative font-sans transition-colors duration-300">
             {isSidebarOpen && (
                 <div
                     className="fixed inset-0 bg-black/50 z-20 lg:hidden backdrop-blur-sm transition-opacity"
@@ -259,8 +301,8 @@ const ParentDashboard = () => {
             )}
 
             {/* Sidebar - Teal/Emerald Gradient for Parent Identity */}
-            <aside className={`w-72 bg-gradient-to-b from-teal-950 via-teal-900 to-emerald-900 text-white flex-shrink-0 flex flex-col shadow-2xl z-30 fixed h-full transition-transform duration-300 lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:static`}>
-                <div className="p-6 flex items-center justify-between border-b border-teal-800/50">
+            <aside className={`w-72 bg-gradient-to-b from-teal-950 via-teal-900 to-emerald-900 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 text-white flex-shrink-0 flex flex-col shadow-2xl z-30 fixed h-full transition-transform duration-300 lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:static`}>
+                <div className="p-6 flex items-center justify-between border-b border-teal-800/50 dark:border-gray-800">
                     <div className="w-full flex justify-center">
                         <img src={oasisFullLogo} alt="Oasis Logo" className="h-16 object-contain brightness-110 drop-shadow-lg" />
                     </div>
@@ -311,9 +353,9 @@ const ParentDashboard = () => {
             </aside>
 
             {/* Main Content */}
-            <main className="flex-1 flex flex-col overflow-hidden w-full">
+            <main className="flex-1 flex flex-col overflow-hidden w-full bg-[#F8FAFC] dark:bg-gray-950 transition-colors duration-300">
                 {/* Header */}
-                <header className="h-20 bg-white border-b border-gray-100 flex items-center justify-between px-6 lg:px-10 shadow-sm z-10 w-full">
+                <header className="h-20 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between px-6 lg:px-10 shadow-sm z-10 w-full transition-colors duration-300">
                     <div className="flex items-center gap-6 flex-1 max-w-2xl text-gray-400">
                         <button
                             onClick={() => setIsSidebarOpen(true)}
@@ -325,7 +367,7 @@ const ParentDashboard = () => {
                             <select
                                 value={selectedChild}
                                 onChange={(e) => setSelectedChild(e.target.value)}
-                                className="bg-gray-50 border-none rounded-xl px-4 py-2 font-bold text-sm text-indigo-600 focus:ring-0 cursor-pointer"
+                                className="bg-gray-50 dark:bg-gray-800 border-none rounded-xl px-4 py-2 font-bold text-sm text-indigo-600 dark:text-indigo-400 focus:ring-0 cursor-pointer outline-none transition-colors"
                             >
                                 {children.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
                             </select>
@@ -334,32 +376,85 @@ const ParentDashboard = () => {
                     </div>
                     <div className="flex items-center gap-8">
                         {/* Notifications */}
-                        <div className="relative group">
-                            <div className="p-2 cursor-pointer hover:bg-gray-50 rounded-full transition-colors relative">
-                                <FaBell className="text-gray-400 group-hover:text-indigo-500 text-lg" />
-                                {notifications.some(n => !n.read) && <span className="absolute top-1.5 right-2 w-2 h-2 bg-red-500 rounded-full border border-white"></span>}
-                            </div>
+                        <div className="relative">
+                            <button
+                                onClick={toggleNotifications}
+                                className="p-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-full transition-colors relative focus:outline-none"
+                            >
+                                <FaBell className="text-gray-400 dark:text-gray-500 hover:text-indigo-500 dark:hover:text-indigo-400 text-xl transition-colors" />
+                                {notifications.some(n => !n.read) && (
+                                    <span className="absolute top-2 right-2.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white dark:border-gray-900 animate-pulse"></span>
+                                )}
+                            </button>
+
                             {/* Notification Dropdown */}
-                            <div className="absolute right-0 mt-4 w-80 bg-white rounded-2xl shadow-xl border border-gray-100 hidden group-hover:block p-2 z-50">
-                                <div className="text-xs font-bold text-gray-400 uppercase tracking-wider p-2">Notifications</div>
-                                <div className="max-h-64 overflow-y-auto">
-                                    {notifications.length > 0 ? notifications.map(n => (
-                                        <div key={n._id} className="p-3 hover:bg-gray-50 rounded-xl mb-1">
-                                            <p className="text-xs font-bold text-gray-800">{n.title}</p>
-                                            <p className="text-[10px] text-gray-500 line-clamp-2">{n.message}</p>
-                                        </div>
-                                    )) : <div className="p-4 text-center text-xs text-gray-400">No active alerts</div>}
+                            {isNotificationsOpen && (
+                                <div
+                                    className="absolute right-0 mt-4 w-80 sm:w-96 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+                                    onClick={(e) => e.stopPropagation()}
+                                >
+                                    <div className="p-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between bg-gray-50/50 dark:bg-gray-800/50 backdrop-blur-sm">
+                                        <h3 className="font-bold text-gray-900 dark:text-white text-sm">Notifications</h3>
+                                        {notifications.some(n => !n.read) && (
+                                            <button
+                                                onClick={handleMarkAllRead}
+                                                className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 uppercase tracking-wider bg-indigo-50 dark:bg-indigo-900/30 px-2 py-1 rounded-md transition-colors"
+                                            >
+                                                Mark all read
+                                            </button>
+                                        )}
+                                    </div>
+                                    <div className="max-h-[22rem] overflow-y-auto custom-scrollbar">
+                                        {notifications.length > 0 ? (
+                                            <div className="divide-y divide-gray-50 dark:divide-gray-800">
+                                                {notifications.map(n => (
+                                                    <div
+                                                        key={n._id}
+                                                        className={`p-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors ${!n.read ? 'bg-indigo-50/30 dark:bg-indigo-900/10' : ''}`}
+                                                    >
+                                                        <div className="flex gap-3">
+                                                            <div className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ${!n.read ? 'bg-indigo-500' : 'bg-gray-300 dark:bg-gray-600'}`}></div>
+                                                            <div>
+                                                                <p className={`text-sm font-semibold mb-1 ${!n.read ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400'}`}>
+                                                                    {n.title}
+                                                                </p>
+                                                                <p className="text-xs text-gray-500 dark:text-gray-500 leading-relaxed">
+                                                                    {n.message}
+                                                                </p>
+                                                                <p className="text-[10px] text-gray-400 dark:text-gray-600 mt-2 font-medium">
+                                                                    {new Date(n.createdAt).toLocaleDateString()}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="p-8 text-center flex flex-col items-center justify-center">
+                                                <div className="w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-3">
+                                                    <FaBell className="text-gray-400 dark:text-gray-600 text-lg" />
+                                                </div>
+                                                <p className="text-sm font-bold text-gray-900 dark:text-gray-200">No Notifications</p>
+                                                <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">You're all caught up!</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="p-3 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-800 text-center">
+                                        <button onClick={() => setIsNotificationsOpen(false)} className="text-xs font-bold text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 uppercase tracking-wide">
+                                            Close
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
+                            )}
                         </div>
 
-                        <div className="flex items-center gap-4 px-5 py-2.5 bg-gray-50 rounded-2xl border border-dotted border-gray-200 cursor-pointer hover:bg-white transition-all">
-                            <div className="w-9 h-9 rounded-xl bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-sm">
+                        <div className="flex items-center gap-4 px-5 py-2.5 bg-gray-50 dark:bg-gray-800 rounded-2xl border border-dotted border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-white dark:hover:bg-gray-700 transition-all group">
+                            <div className="w-9 h-9 rounded-xl bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-bold text-sm group-hover:scale-105 transition-transform">
                                 {profile.name?.charAt(0).toUpperCase() || 'P'}
                             </div>
                             <div className="text-right hidden md:block">
-                                <p className="text-xs font-bold text-gray-900 leading-none mb-1">{profile.name || 'Parent'}</p>
-                                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Guardian</p>
+                                <p className="text-xs font-bold text-gray-900 dark:text-white leading-none mb-1">{profile.name || 'Parent'}</p>
+                                <p className="text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider">Guardian</p>
                             </div>
                         </div>
                     </div>
@@ -408,7 +503,7 @@ const ParentDashboard = () => {
                                     { label: 'Outstanding Due', value: `₹${pendingFees.toLocaleString()}`, trend: 'Important', icon: FaWallet, color: 'rose', gradient: 'from-rose-500 to-pink-500' },
                                     { label: 'Notices', value: activeNoticesCount, trend: 'Updates', icon: FaBullhorn, color: 'orange', gradient: 'from-orange-500 to-amber-500' },
                                 ].map((stat, i) => (
-                                    <div key={i} className="p-8 bg-white rounded-[2.5rem] border border-gray-100 shadow-[0_8px_30px_-8px_rgba(0,0,0,0.06)] transition-all duration-300 relative overflow-hidden group hover:-translate-y-1 hover:shadow-xl">
+                                    <div key={i} className="p-8 bg-white dark:bg-gray-800 rounded-[2.5rem] border border-gray-100 dark:border-gray-700 shadow-[0_8px_30px_-8px_rgba(0,0,0,0.06)] transition-all duration-300 relative overflow-hidden group hover:-translate-y-1 hover:shadow-xl">
                                         <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${stat.gradient} opacity-10 rounded-full -mr-12 -mt-12 group-hover:scale-150 transition-transform duration-700 ease-out`}></div>
                                         <div className="flex items-center justify-between mb-8 relative">
                                             <div className={`w-14 h-14 bg-${stat.color}-50 rounded-2xl flex items-center justify-center text-${stat.color}-600 text-xl shadow-inner`}>
@@ -418,19 +513,20 @@ const ParentDashboard = () => {
                                                 {stat.trend}
                                             </span>
                                         </div>
-                                        <h3 className="text-4xl font-[900] text-slate-800 mb-2 relative tracking-tight">{stat.value}</h3>
-                                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest relative">{stat.label}</p>
+
+                                        <h3 className="text-4xl font-[900] text-slate-800 dark:text-white mb-2 relative tracking-tight">{stat.value}</h3>
+                                        <p className="text-xs font-bold text-slate-400 dark:text-gray-500 uppercase tracking-widest relative">{stat.label}</p>
                                     </div>
                                 ))}
                             </div>
 
                             {/* Charts Grid - Admin Layout */}
                             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                                <div className="lg:col-span-2 bg-white rounded-[3rem] p-10 border border-gray-100 shadow-sm transition-all hover:shadow-xl group">
+                                <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-[3rem] p-10 border border-gray-100 dark:border-gray-700 shadow-sm transition-all hover:shadow-xl group">
                                     <div className="flex items-center justify-between mb-8">
                                         <div>
-                                            <h2 className="text-2xl font-black text-gray-900 leading-tight">Performance Matrix</h2>
-                                            <p className="text-gray-400 font-bold text-sm">Subject-wise progression</p>
+                                            <h2 className="text-2xl font-black text-gray-900 dark:text-white leading-tight">Performance Matrix</h2>
+                                            <p className="text-gray-400 dark:text-gray-500 font-bold text-sm">Subject-wise progression</p>
                                         </div>
                                     </div>
                                     <div className="h-[350px]">
@@ -438,8 +534,8 @@ const ParentDashboard = () => {
                                     </div>
                                 </div>
 
-                                <div className="bg-white rounded-[3rem] p-10 border border-gray-100 shadow-sm transition-all hover:shadow-xl flex flex-col items-center justify-center text-center">
-                                    <h2 className="text-xl font-black text-gray-900 mb-8 self-start">Attendance</h2>
+                                <div className="bg-white dark:bg-gray-800 rounded-[3rem] p-10 border border-gray-100 dark:border-gray-700 shadow-sm transition-all hover:shadow-xl flex flex-col items-center justify-center text-center">
+                                    <h2 className="text-xl font-black text-gray-900 dark:text-white mb-8 self-start">Attendance</h2>
                                     <div className="w-64 h-64 mb-8">
                                         <Doughnut data={attendanceData} options={{ cutout: '75%', plugins: { legend: { display: false } } }} />
                                     </div>
@@ -461,12 +557,12 @@ const ParentDashboard = () => {
                     {/* FEES TAB */}
                     {activeTab === 'Fees' && (
                         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                            <div className="bg-white rounded-[3rem] p-10 border border-gray-100 shadow-sm">
-                                <h2 className="text-2xl font-black text-gray-900 mb-6">Fee Structure</h2>
+                            <div className="bg-white dark:bg-gray-800 rounded-[3rem] p-10 border border-gray-100 dark:border-gray-700 shadow-sm">
+                                <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-6">Fee Structure</h2>
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                                    <div className="p-6 bg-gray-50 rounded-2xl">
-                                        <p className="text-xs font-bold text-gray-400 uppercase">Total Fee</p>
-                                        <p className="text-3xl font-black text-gray-900">₹{fees.totalFees}</p>
+                                    <div className="p-6 bg-gray-50 dark:bg-gray-700 rounded-2xl">
+                                        <p className="text-xs font-bold text-gray-400 dark:text-gray-300 uppercase">Total Fee</p>
+                                        <p className="text-3xl font-black text-gray-900 dark:text-white">₹{fees.totalFees}</p>
                                     </div>
                                     <div className="p-6 bg-emerald-50 rounded-2xl">
                                         <p className="text-xs font-bold text-emerald-600 uppercase">Paid Amount</p>
@@ -502,13 +598,13 @@ const ParentDashboard = () => {
                                                     <th className="pb-3">Receipt</th>
                                                 </tr>
                                             </thead>
-                                            <tbody className="divide-y divide-gray-50">
+                                            <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
                                                 {fees.payments?.map(p => (
-                                                    <tr key={p._id} className="hover:bg-gray-50/50">
-                                                        <td className="py-4 pl-4 font-medium text-gray-700">{new Date(p.date).toLocaleDateString()}</td>
-                                                        <td className="py-4 text-sm text-gray-500 font-mono">{p.transactionId || 'N/A'}</td>
-                                                        <td className="py-4 text-sm text-gray-500 capitalize">{p.mode}</td>
-                                                        <td className="py-4 font-bold text-gray-900">₹{p.amount}</td>
+                                                    <tr key={p._id} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition-colors">
+                                                        <td className="py-4 pl-4 font-medium text-gray-700 dark:text-gray-300">{new Date(p.date).toLocaleDateString()}</td>
+                                                        <td className="py-4 text-sm text-gray-500 dark:text-gray-400 font-mono">{p.transactionId || 'N/A'}</td>
+                                                        <td className="py-4 text-sm text-gray-500 dark:text-gray-400 capitalize">{p.mode}</td>
+                                                        <td className="py-4 font-bold text-gray-900 dark:text-white">₹{p.amount}</td>
                                                         <td className="py-4">
                                                             <button onClick={() => handleDownloadReceipt(p)} className="text-indigo-600 text-xs font-bold hover:underline flex items-center gap-1">
                                                                 <FaFilePdf /> Receipt
@@ -526,36 +622,86 @@ const ParentDashboard = () => {
 
                     {/* ATTENDANCE TAB */}
                     {activeTab === 'Attendance' && (
-                        <div className="bg-white rounded-[3rem] p-10 border border-gray-100 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500">
-                            <h2 className="text-2xl font-black text-gray-900 mb-6">Attendance Log</h2>
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                {attendance.slice().reverse().map(a => (
-                                    <div key={a._id} className={`p-4 rounded-2xl border ${a.status === 'present' ? 'bg-emerald-50 border-emerald-100' : 'bg-red-50 border-red-100'}`}>
-                                        <p className="text-xs font-bold text-gray-500 mb-1">{new Date(a.date).toLocaleDateString()}</p>
-                                        <p className={`text-lg font-black uppercase ${a.status === 'present' ? 'text-emerald-700' : 'text-red-700'}`}>{a.status}</p>
+                        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            {/* Attendance Summary */}
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <div className="bg-white dark:bg-gray-800 p-6 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-sm">
+                                    <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">Total Classes</p>
+                                    <p className="text-3xl font-black text-gray-900 dark:text-white">{filteredTotal}</p>
+                                </div>
+                                <div className="bg-white dark:bg-gray-800 p-6 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-sm">
+                                    <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">Present</p>
+                                    <p className="text-3xl font-black text-emerald-500">{filteredPresent}</p>
+                                </div>
+                                <div className="bg-white dark:bg-gray-800 p-6 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-sm">
+                                    <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">Absent</p>
+                                    <p className="text-3xl font-black text-rose-500">{filteredTotal - filteredPresent}</p>
+                                </div>
+                                <div className="bg-white dark:bg-gray-800 p-6 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-sm">
+                                    <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">Attendance %</p>
+                                    <p className={`text-3xl font-black ${filteredPercentage >= 75 ? 'text-emerald-500' : 'text-rose-500'}`}>{filteredPercentage}%</p>
+                                </div>
+                            </div>
+
+                            <div className="bg-white dark:bg-gray-800 rounded-[3rem] p-10 border border-gray-100 dark:border-gray-700 shadow-sm">
+                                <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+                                    <h2 className="text-2xl font-black text-gray-900 dark:text-white">Attendance Log</h2>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-sm font-bold text-gray-500 dark:text-gray-400">Filter by:</span>
+                                        <select
+                                            value={selectedSubject}
+                                            onChange={(e) => setSelectedSubject(e.target.value)}
+                                            className="bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-4 py-2 font-bold text-sm text-indigo-600 dark:text-indigo-400 focus:ring-0 cursor-pointer outline-none transition-colors"
+                                        >
+                                            {subjects.map(sub => (
+                                                <option key={sub} value={sub}>{sub}</option>
+                                            ))}
+                                        </select>
                                     </div>
-                                ))}
+                                </div>
+
+                                {filteredAttendance.length > 0 ? (
+                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                        {filteredAttendance.map(a => (
+                                            <div key={a._id} className={`p-4 rounded-2xl border ${a.status === 'present' ? 'bg-emerald-50 dark:bg-emerald-900/10 border-emerald-100 dark:border-emerald-800' : 'bg-red-50 dark:bg-red-900/10 border-red-100 dark:border-red-800'}`}>
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <p className="text-xs font-bold text-gray-500 dark:text-gray-400">{new Date(a.date).toLocaleDateString()}</p>
+                                                    {a.subjectId?.name && (
+                                                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 bg-white dark:bg-gray-800 rounded-lg text-gray-500 dark:text-gray-400 border border-gray-100 dark:border-gray-700">
+                                                            {a.subjectId.name}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <p className={`text-lg font-black uppercase ${a.status === 'present' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>{a.status}</p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-10 text-gray-400 dark:text-gray-500 font-bold">
+                                        No attendance records found for {selectedSubject}.
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
 
                     {/* PERFORMANCE TAB */}
                     {activeTab === 'Performance' && (
-                        <div className="bg-white rounded-[3rem] p-10 border border-gray-100 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500">
-                            <h2 className="text-2xl font-black text-gray-900 mb-6">Exam Results</h2>
+                        <div className="bg-white dark:bg-gray-800 rounded-[3rem] p-10 border border-gray-100 dark:border-gray-700 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-6">Exam Results</h2>
                             <table className="w-full text-left">
                                 <thead>
-                                    <tr className="border-b border-gray-100 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                                    <tr className="border-b border-gray-100 dark:border-gray-700 text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
                                         <th className="pb-3 pl-4">Subject</th>
                                         <th className="pb-3">Exam</th>
                                         <th className="pb-3 text-center">Marks</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-gray-50">
+                                <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
                                     {marks.map(m => (
-                                        <tr key={m._id} className="hover:bg-gray-50/50">
-                                            <td className="py-4 pl-4 font-bold text-gray-700">{m.subjectId?.name}</td>
-                                            <td className="py-4 text-sm text-gray-500">{m.examId?.name}</td>
+                                        <tr key={m._id} className="hover:bg-gray-50/50 dark:hover:bg-gray-700/30 transition-colors">
+                                            <td className="py-4 pl-4 font-bold text-gray-700 dark:text-gray-300">{m.subjectId?.name}</td>
+                                            <td className="py-4 text-sm text-gray-500 dark:text-gray-400">{m.examId?.name}</td>
                                             <td className="py-4 text-center">
                                                 <span className="bg-indigo-50 text-indigo-700 px-3 py-1 rounded-lg font-black text-sm">{m.marks}%</span>
                                             </td>
@@ -570,12 +716,12 @@ const ParentDashboard = () => {
                     {activeTab === 'Materials' && (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                             {materials.map(m => (
-                                <div key={m._id} className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-xl transition-all group">
-                                    <div className="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 text-2xl mb-6 shadow-inner group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                                <div key={m._id} className="bg-white dark:bg-gray-800 p-8 rounded-[2.5rem] border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-xl transition-all group">
+                                    <div className="w-16 h-16 bg-indigo-50 dark:bg-indigo-900/30 rounded-2xl flex items-center justify-center text-indigo-600 dark:text-indigo-400 text-2xl mb-6 shadow-inner group-hover:bg-indigo-600 group-hover:text-white transition-all">
                                         <FaBook />
                                     </div>
-                                    <h3 className="text-xl font-bold text-gray-900 mb-2 truncate">{m.title}</h3>
-                                    <p className="text-xs text-gray-500 mb-6 leading-relaxed">Study material provided for students.</p>
+                                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 truncate">{m.title}</h3>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-6 leading-relaxed">Study material provided for students.</p>
                                     <a
                                         href={`http://localhost:5002/${m.fileUrl}`}
                                         download
@@ -589,39 +735,41 @@ const ParentDashboard = () => {
                     )}
 
                 </div>
-            </main>
+            </main >
 
             {/* Payment Modal */}
-            {showPaymentModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-gray-900/40 backdrop-blur-sm">
-                    <div className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl p-8">
-                        <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-2xl font-black text-gray-900">Make Payment</h2>
-                            <button onClick={() => setShowPaymentModal(false)}><FaTimesCircle className="text-2xl text-gray-300 hover:text-red-500" /></button>
-                        </div>
-                        <form onSubmit={handlePayment} className="space-y-6">
-                            <div>
-                                <label className="text-xs font-bold text-gray-500 uppercase block mb-2">Amount</label>
-                                <input
-                                    type="number"
-                                    value={paymentAmount}
-                                    onChange={(e) => setPaymentAmount(e.target.value)}
-                                    className="w-full bg-gray-50 border-none rounded-xl px-4 py-3 font-bold text-gray-900 focus:ring-2 focus:ring-indigo-500"
-                                    placeholder="Enter amount"
-                                />
+            {
+                showPaymentModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-gray-900/40 backdrop-blur-sm">
+                        <div className="bg-white dark:bg-gray-800 w-full max-w-md rounded-[2.5rem] shadow-2xl p-8 transition-colors duration-300">
+                            <div className="flex justify-between items-center mb-6">
+                                <h2 className="text-2xl font-black text-gray-900 dark:text-white">Make Payment</h2>
+                                <button onClick={() => setShowPaymentModal(false)}><FaTimesCircle className="text-2xl text-gray-300 dark:text-gray-500 hover:text-red-500 transition-colors" /></button>
                             </div>
-                            <button
-                                type="submit"
-                                disabled={paymentLoading}
-                                className="w-full bg-indigo-600 text-white rounded-xl py-4 font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all disabled:opacity-50"
-                            >
-                                {paymentLoading ? 'Processing...' : 'Secure Pay'}
-                            </button>
-                        </form>
+                            <form onSubmit={handlePayment} className="space-y-6">
+                                <div>
+                                    <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase block mb-2">Amount</label>
+                                    <input
+                                        type="number"
+                                        value={paymentAmount}
+                                        onChange={(e) => setPaymentAmount(e.target.value)}
+                                        className="w-full bg-gray-50 dark:bg-gray-700 border-none rounded-xl px-4 py-3 font-bold text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 dark:focus:ring-indigo-400 outline-none"
+                                        placeholder="Enter amount"
+                                    />
+                                </div>
+                                <button
+                                    type="submit"
+                                    disabled={paymentLoading}
+                                    className="w-full bg-indigo-600 text-white rounded-xl py-4 font-bold shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all disabled:opacity-50"
+                                >
+                                    {paymentLoading ? 'Processing...' : 'Secure Pay'}
+                                </button>
+                            </form>
+                        </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 };
 
