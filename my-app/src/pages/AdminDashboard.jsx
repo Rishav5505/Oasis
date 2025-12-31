@@ -1367,57 +1367,65 @@ const AdminDashboard = () => {
                   </div>
                   <div className="space-y-2 col-span-1 md:col-span-2 lg:col-span-3">
                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-4">Assign Subjects</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Mathematics, Physics (Comma separated)"
-                      value={teacherForm.subjects}
-                      onChange={(e) => setTeacherForm({ ...teacherForm, subjects: e.target.value })}
-                      className="w-full p-4 bg-gray-50 border border-transparent rounded-2xl focus:bg-white focus:border-indigo-100 focus:outline-none font-bold text-gray-700 transition-all"
-                    />
-                    <div className="flex flex-wrap gap-2 mt-2 ml-4">
-                      {availableSubjects.slice(0, 5).map(sub => (
-                        <button
-                          key={sub._id}
-                          type="button"
-                          onClick={() => {
-                            const current = teacherForm.subjects.split(',').map(s => s.trim()).filter(x => x);
-                            if (!current.includes(sub.name)) {
-                              setTeacherForm({ ...teacherForm, subjects: [...current, sub.name].join(', ') });
-                            }
-                          }}
-                          className="px-3 py-1 bg-indigo-50 text-indigo-600 rounded-lg text-[10px] font-bold hover:bg-indigo-100 transition-colors"
-                        >
-                          + {sub.name}
-                        </button>
-                      ))}
+                    <div className="flex flex-wrap gap-3 p-4 bg-gray-50 rounded-2xl">
+                      {['Physics', 'Maths', 'Biology', 'Chemistry', 'English'].map(subject => {
+                        const currentSubjects = teacherForm.subjects ? teacherForm.subjects.split(',').map(s => s.trim()) : [];
+                        const isSelected = currentSubjects.includes(subject);
+                        return (
+                          <button
+                            key={subject}
+                            type="button"
+                            onClick={() => {
+                              let newSubjects;
+                              if (isSelected) {
+                                newSubjects = currentSubjects.filter(s => s !== subject);
+                              } else {
+                                newSubjects = [...currentSubjects, subject];
+                              }
+                              setTeacherForm({ ...teacherForm, subjects: newSubjects.join(', ') });
+                            }}
+                            className={`px-4 py-2 rounded-xl text-xs font-black transition-all border-2 ${isSelected
+                                ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-200'
+                                : 'bg-white text-gray-500 border-gray-100 hover:border-indigo-200'
+                              }`}
+                          >
+                            {isSelected && <FaCheckCircle className="inline mr-2" />}
+                            {subject}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 
                   <div className="space-y-2 col-span-1 md:col-span-2 lg:col-span-3">
                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-4">Assign Classes</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Class 10, Class 12 (Comma separated)"
-                      value={teacherForm.classes}
-                      onChange={(e) => setTeacherForm({ ...teacherForm, classes: e.target.value })}
-                      className="w-full p-4 bg-gray-50 border border-transparent rounded-2xl focus:bg-white focus:border-indigo-100 focus:outline-none font-bold text-gray-700 transition-all"
-                    />
-                    <div className="flex flex-wrap gap-2 mt-2 ml-4">
-                      {availableClasses.slice(0, 5).map(cls => (
-                        <button
-                          key={cls._id}
-                          type="button"
-                          onClick={() => {
-                            const current = teacherForm.classes.split(',').map(s => s.trim()).filter(x => x);
-                            if (!current.includes(cls.name)) {
-                              setTeacherForm({ ...teacherForm, classes: [...current, cls.name].join(', ') });
-                            }
-                          }}
-                          className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-[10px] font-bold hover:bg-emerald-100 transition-colors"
-                        >
-                          + {cls.name}
-                        </button>
-                      ))}
+                    <div className="flex flex-wrap gap-3 p-4 bg-gray-50 rounded-2xl">
+                      {['Class 9th', 'Class 10th', 'Class 11th', 'Class 12th'].map(cls => {
+                        const currentClasses = teacherForm.classes ? teacherForm.classes.split(',').map(s => s.trim()) : [];
+                        const isSelected = currentClasses.includes(cls);
+                        return (
+                          <button
+                            key={cls}
+                            type="button"
+                            onClick={() => {
+                              let newClasses;
+                              if (isSelected) {
+                                newClasses = currentClasses.filter(c => c !== cls);
+                              } else {
+                                newClasses = [...currentClasses, cls];
+                              }
+                              setTeacherForm({ ...teacherForm, classes: newClasses.join(', ') });
+                            }}
+                            className={`px-4 py-2 rounded-xl text-xs font-black transition-all border-2 ${isSelected
+                                ? 'bg-emerald-500 text-white border-emerald-500 shadow-lg shadow-emerald-200'
+                                : 'bg-white text-gray-500 border-gray-100 hover:border-emerald-200'
+                              }`}
+                          >
+                            {isSelected && <FaCheckCircle className="inline mr-2" />}
+                            {cls}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 
