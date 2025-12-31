@@ -331,12 +331,15 @@ const About = () => {
             </p>
 
             <div className="flex flex-col sm:flex-row justify-center gap-6 mb-12">
-              <button className="group px-10 py-5 bg-white text-indigo-900 font-bold rounded-2xl text-lg shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 overflow-hidden relative">
+              <a
+                href="/#demo-form"
+                className="group px-10 py-5 bg-white text-indigo-900 font-bold rounded-2xl text-lg shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 overflow-hidden relative text-center"
+              >
                 <div className="absolute inset-0 bg-gradient-to-r from-indigo-50 to-purple-50 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                 <span className="relative flex items-center justify-center gap-2">
                   Book Free Demo Class <FaArrowRight className="group-hover:translate-x-1 transition-transform" />
                 </span>
-              </button>
+              </a>
               <button className="px-10 py-5 bg-transparent border-2 border-white/20 hover:border-white text-white font-bold rounded-2xl text-lg transition-all hover:bg-white/10">
                 Talk to Counselor
               </button>

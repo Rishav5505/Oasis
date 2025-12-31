@@ -1,97 +1,46 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 @tailwind base;
-
-@layer base {
-  body {
-    font-family: 'Outfit', sans-serif;
-    @apply bg-gray-50 text-gray-900;
-    overflow-x: hidden;
-  }
-}
-
 @tailwind components;
 @tailwind utilities;
 
-/* Custom animations */
-@keyframes fade-in-up {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
+html,
+body {
+  @apply overflow-x-hidden w-full m-0 p-0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
 
-  to {
-    opacity: 1;
-    transform: translateY(0);
+@layer base {
+  body {
+    font-family: 'Inter', sans-serif;
+    @apply bg-white text-gray-900;
   }
 }
 
-@keyframes blob {
-  0% {
-    transform: translate(0px, 0px) scale(1);
+@layer components {
+
+  /* Simplified card style common in older/standard UIs */
+  .card-old {
+    @apply bg-white p-6 rounded-xl border border-gray-200 shadow-sm transition-all duration-300;
   }
 
-  33% {
-    transform: translate(30px, -50px) scale(1.1);
+  .card-old:hover {
+    @apply shadow-md -translate-y-1;
   }
 
-  66% {
-    transform: translate(-20px, 20px) scale(0.9);
+  /* Button styles */
+  .btn-blue {
+    @apply px-6 py-2.5 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-all shadow-md;
   }
 
-  100% {
-    transform: translate(0px, 0px) scale(1);
-  }
-}
-
-@keyframes text-shimmer {
-  0% {
-    background-position: 0% 50%;
-  }
-
-  50% {
-    background-position: 100% 50%;
-  }
-
-  100% {
-    background-position: 0% 50%;
+  .btn-outline {
+    @apply px-6 py-2.5 border-2 border-blue-600 text-blue-600 font-bold rounded-lg hover:bg-blue-50 transition-all;
   }
 }
 
-.animate-fade-in-up {
-  animation: fade-in-up 1s ease-out forwards;
-}
-
-@keyframes typewriter {
-  from {
-    width: 0;
-  }
-
-  to {
-    width: 100%;
-  }
-}
-
-@keyframes blink {
-
-  from,
-  to {
-    border-color: transparent;
-  }
-
-  50% {
-    border-color: #6366f1;
-  }
-}
-
-.animate-typewriter {
-  display: inline-block;
-  overflow: hidden;
-  white-space: nowrap;
-  animation: typewriter 2s steps(40, end);
-}
-
-@keyframes reveal {
+/* Base animations */
+@keyframes fadeIn {
   from {
     opacity: 0;
     transform: translateY(10px);
@@ -103,24 +52,6 @@
   }
 }
 
-.animate-reveal {
-  opacity: 0;
-  animation: reveal 0.8s ease-out forwards;
-}
-
-.animate-blob {
-  animation: blob 7s infinite;
-}
-
-.animate-text-shimmer {
-  background-size: 200% auto;
-  animation: text-shimmer 4s linear infinite;
-}
-
-.animation-delay-2000 {
-  animation-delay: 2s;
-}
-
-.animation-delay-4000 {
-  animation-delay: 4s;
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out forwards;
 }

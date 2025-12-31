@@ -173,9 +173,12 @@ const Results = () => {
           </div>
 
           <div className="mt-20 text-center">
-            <button className="px-10 py-5 bg-white text-indigo-900 font-extrabold rounded-2xl text-lg hover:shadow-2xl hover:-translate-y-1 transition-all duration-300">
+            <a
+              href="/#demo-form"
+              className="inline-block px-10 py-5 bg-white text-indigo-900 font-extrabold rounded-2xl text-lg hover:shadow-2xl hover:-translate-y-1 transition-all duration-300"
+            >
               Be the Next Topper
-            </button>
+            </a>
           </div>
         </div>
       </section>

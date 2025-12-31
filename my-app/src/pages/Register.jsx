@@ -21,7 +21,8 @@ const Register = () => {
       alert('Registration successful! Please login.');
       navigate('/login');
     } catch (err) {
-      alert('Registration failed');
+      const errorMsg = err.response?.data?.message || 'Registration failed. Please try again.';
+      alert(errorMsg);
     }
   };
 
@@ -118,6 +119,40 @@ const Register = () => {
             <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400">🎓</span>
             <span className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400">▼</span>
           </div>
+
+          {form.role === 'student' && (
+            <div className="space-y-4 animate-in fade-in duration-300">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Father's Name"
+                  value={form.fatherName || ''}
+                  onChange={(e) => setForm({ ...form, fatherName: e.target.value })}
+                  className="w-full p-4 pl-12 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none transition-colors duration-300 bg-gray-50"
+                />
+                <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400">👨</span>
+              </div>
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Mother's Name"
+                  value={form.motherName || ''}
+                  onChange={(e) => setForm({ ...form, motherName: e.target.value })}
+                  className="w-full p-4 pl-12 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none transition-colors duration-300 bg-gray-50"
+                />
+                <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400">👩</span>
+              </div>
+              <div className="relative">
+                <input
+                  type="date"
+                  value={form.dob || ''}
+                  onChange={(e) => setForm({ ...form, dob: e.target.value })}
+                  className="w-full p-4 pl-12 border-2 border-gray-200 rounded-xl focus:border-green-500 focus:outline-none transition-colors duration-300 bg-gray-50 uppercase text-xs text-gray-400"
+                />
+                <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400">📅</span>
+              </div>
+            </div>
+          )}
 
           <button
             type="submit"

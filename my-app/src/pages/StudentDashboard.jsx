@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { AuthContext } from '../contexts/AuthContext';
-import { FaUser, FaCalendarAlt, FaBook, FaBullhorn, FaDownload, FaMoneyBillWave, FaClipboardList, FaGraduationCap, FaEdit, FaSave, FaTimes, FaCamera, FaBell, FaChartLine, FaClock, FaStar, FaCheckCircle, FaChevronRight } from 'react-icons/fa';
+import { FaUser, FaCalendarAlt, FaBook, FaBullhorn, FaDownload, FaMoneyBillWave, FaClipboardList, FaGraduationCap, FaEdit, FaSave, FaTimes, FaCamera, FaBell, FaChartLine, FaClock, FaStar, FaCheckCircle, FaChevronRight, FaSignOutAlt } from 'react-icons/fa';
 import oasisLogo from '../assets/oasis_logo.png';
 import receiptBanner from '../assets/receipt_banner.png';
 
 const StudentDashboard = () => {
-  const { user } = useContext(AuthContext);
+  const { user, logout } = useContext(AuthContext);
   const [profile, setProfile] = useState({});
   const [student, setStudent] = useState({});
   const [attendance, setAttendance] = useState([]);
@@ -345,6 +345,16 @@ const StudentDashboard = () => {
                   <p className="text-sm text-gray-500">Student ID: {user?.id?.slice(-6)}</p>
                 </div>
               </div>
+              <button
+                onClick={() => {
+                  logout();
+                  window.location.href = '/login';
+                }}
+                className="flex items-center space-x-2 bg-red-50 text-red-600 px-4 py-2 rounded-xl border border-red-100 hover:bg-red-600 hover:text-white transition-all font-bold text-sm"
+              >
+                <FaSignOutAlt />
+                <span className="hidden sm:inline">Logout</span>
+              </button>
             </div>
           </div>
         </div>
@@ -618,7 +628,10 @@ const StudentDashboard = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div className={`bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6 border-2 ${!editForm.name ? 'border-red-200' : 'border-blue-200'}`}>
+              <div
+                onClick={() => setEditMode(true)}
+                className={`bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6 border-2 cursor-pointer hover:shadow-md transition-all ${!editForm.name ? 'border-red-200' : 'border-blue-200'}`}
+              >
                 <div className="flex items-center justify-between mb-4">
                   <div className="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center">
                     <FaUser className="text-white text-xl" />
@@ -630,7 +643,10 @@ const StudentDashboard = () => {
                 {editForm.name && <FaCheckCircle className="text-green-500 mt-2" />}
               </div>
 
-              <div className={`bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-6 border-2 ${!editForm.phone ? 'border-red-200' : 'border-green-200'}`}>
+              <div
+                onClick={() => setEditMode(true)}
+                className={`bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-6 border-2 cursor-pointer hover:shadow-md transition-all ${!editForm.phone ? 'border-red-200' : 'border-green-200'}`}
+              >
                 <div className="flex items-center justify-between mb-4">
                   <div className="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center">
                     <FaUser className="text-white text-xl" />
@@ -642,7 +658,10 @@ const StudentDashboard = () => {
                 {editForm.phone && <FaCheckCircle className="text-green-500 mt-2" />}
               </div>
 
-              <div className={`bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-6 border-2 ${!editForm.email ? 'border-red-200' : 'border-purple-200'}`}>
+              <div
+                onClick={() => setEditMode(true)}
+                className={`bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-6 border-2 cursor-pointer hover:shadow-md transition-all ${!editForm.email ? 'border-red-200' : 'border-purple-200'}`}
+              >
                 <div className="flex items-center justify-between mb-4">
                   <div className="w-12 h-12 bg-purple-500 rounded-lg flex items-center justify-center">
                     <FaUser className="text-white text-xl" />
@@ -665,7 +684,10 @@ const StudentDashboard = () => {
                 {profile.profilePhoto && <FaCheckCircle className="text-green-500 mt-2" />}
               </div>
 
-              <div className={`bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl p-6 border-2 ${!editForm.fatherName ? 'border-red-200' : 'border-yellow-200'}`}>
+              <div
+                onClick={() => setEditMode(true)}
+                className={`bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl p-6 border-2 cursor-pointer hover:shadow-md transition-all ${!editForm.fatherName ? 'border-red-200' : 'border-yellow-200'}`}
+              >
                 <div className="flex items-center justify-between mb-4">
                   <div className="w-12 h-12 bg-yellow-500 rounded-lg flex items-center justify-center">
                     <FaUser className="text-white text-xl" />
@@ -677,7 +699,10 @@ const StudentDashboard = () => {
                 {editForm.fatherName && <FaCheckCircle className="text-green-500 mt-2" />}
               </div>
 
-              <div className={`bg-gradient-to-br from-pink-50 to-pink-100 rounded-xl p-6 border-2 ${!editForm.motherName ? 'border-red-200' : 'border-pink-200'}`}>
+              <div
+                onClick={() => setEditMode(true)}
+                className={`bg-gradient-to-br from-pink-50 to-pink-100 rounded-xl p-6 border-2 cursor-pointer hover:shadow-md transition-all ${!editForm.motherName ? 'border-red-200' : 'border-pink-200'}`}
+              >
                 <div className="flex items-center justify-between mb-4">
                   <div className="w-12 h-12 bg-pink-500 rounded-lg flex items-center justify-center">
                     <FaUser className="text-white text-xl" />
@@ -689,7 +714,10 @@ const StudentDashboard = () => {
                 {editForm.motherName && <FaCheckCircle className="text-green-500 mt-2" />}
               </div>
 
-              <div className={`bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl p-6 border-2 ${!editForm.dob ? 'border-red-200' : 'border-indigo-200'}`}>
+              <div
+                onClick={() => setEditMode(true)}
+                className={`bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl p-6 border-2 cursor-pointer hover:shadow-md transition-all ${!editForm.dob ? 'border-red-200' : 'border-indigo-200'}`}
+              >
                 <div className="flex items-center justify-between mb-4">
                   <div className="w-12 h-12 bg-indigo-500 rounded-lg flex items-center justify-center">
                     <FaCalendarAlt className="text-white text-xl" />
@@ -918,7 +946,13 @@ const StudentDashboard = () => {
       {/* Class Selection Modal */}
       {showClassModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-[2rem] p-10 max-w-lg w-full shadow-2xl animate-in zoom-in duration-300">
+          <div className="bg-white rounded-[2rem] p-10 max-w-lg w-full shadow-2xl animate-in zoom-in duration-300 relative">
+            <button
+              onClick={() => setShowClassModal(false)}
+              className="absolute top-6 right-6 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-all"
+            >
+              <FaTimes className="text-xl" />
+            </button>
             <div className="text-center mb-10">
               <div className="w-20 h-20 bg-blue-100 text-blue-600 rounded-[2rem] flex items-center justify-center text-3xl mx-auto mb-6 shadow-lg rotate-3 group-hover:rotate-0 transition-transform">
                 <FaGraduationCap />
@@ -928,7 +962,7 @@ const StudentDashboard = () => {
             </div>
 
             <div className="grid grid-cols-1 gap-4">
-              {availableClasses.map(c => (
+              {availableClasses.length > 0 ? availableClasses.map(c => (
                 <button
                   key={c._id}
                   onClick={() => handleClassSelection(c._id)}
@@ -940,7 +974,12 @@ const StudentDashboard = () => {
                   </div>
                   <FaChevronRight className="text-gray-300 group-hover:text-white group-hover:translate-x-1 transition-all" />
                 </button>
-              ))}
+              )) : (
+                <div className="text-center p-8 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200">
+                  <p className="text-gray-500 font-bold">No academic levels found.</p>
+                  <p className="text-[10px] text-gray-400 mt-2 uppercase">Please ask admin to add classes (11th, 12th, etc.)</p>
+                </div>
+              )}
             </div>
 
             <p className="mt-8 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest leading-relaxed">

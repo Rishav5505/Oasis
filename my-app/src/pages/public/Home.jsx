@@ -95,10 +95,10 @@ const Home = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 overflow-x-hidden">
       <Navbar />
 
-      <section className="relative min-h-[90vh] flex items-center text-white overflow-hidden bg-black">
+      <section className="relative min-h-[90vh] flex items-center text-white overflow-hidden bg-black w-full">
         {/* Background Slideshow */}
         {heroImages.map((img, idx) => (
           <div
@@ -193,27 +193,27 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Quick Login Shortcuts */}
-      <section className="py-8 bg-white border-b">
+      {/* Portal Login Section */}
+      <section id="portal-login" className="py-8 bg-white border-b">
         <div className="container mx-auto px-4">
           <div className="max-w-5xl mx-auto">
-            <h3 className="text-center text-gray-700 font-semibold mb-4">🚀 Quick Access Portal</h3>
+            <h3 className="text-center text-gray-700 font-semibold mb-4">🚀 Portal Login</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <Link to="/login" className="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-4 rounded-lg text-center hover:scale-105 transition-transform shadow-md">
+              <Link to="/login?role=student" className="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-4 rounded-lg text-center hover:scale-105 transition-transform shadow-md">
                 <div className="text-3xl mb-2">👨‍🎓</div>
-                <div className="font-semibold">Student Login</div>
+                <div className="font-semibold text-sm">Student Portal</div>
               </Link>
-              <Link to="/login" className="bg-gradient-to-r from-green-500 to-green-600 text-white p-4 rounded-lg text-center hover:scale-105 transition-transform shadow-md">
+              <Link to="/login?role=teacher" className="bg-gradient-to-r from-green-500 to-green-600 text-white p-4 rounded-lg text-center hover:scale-105 transition-transform shadow-md">
                 <div className="text-3xl mb-2">👨‍🏫</div>
-                <div className="font-semibold">Teacher Login</div>
+                <div className="font-semibold text-sm">Teacher Portal</div>
               </Link>
-              <Link to="/login" className="bg-gradient-to-r from-purple-500 to-purple-600 text-white p-4 rounded-lg text-center hover:scale-105 transition-transform shadow-md">
+              <Link to="/login?role=parent" className="bg-gradient-to-r from-purple-500 to-purple-600 text-white p-4 rounded-lg text-center hover:scale-105 transition-transform shadow-md">
                 <div className="text-3xl mb-2">👨‍👩‍👦</div>
-                <div className="font-semibold">Parent Login</div>
+                <div className="font-semibold text-sm">Parent Portal</div>
               </Link>
-              <Link to="/login" className="bg-gradient-to-r from-red-500 to-red-600 text-white p-4 rounded-lg text-center hover:scale-105 transition-transform shadow-md">
+              <Link to="/login?role=admin" className="bg-gradient-to-r from-red-500 to-red-600 text-white p-4 rounded-lg text-center hover:scale-105 transition-transform shadow-md">
                 <div className="text-3xl mb-2">⚙️</div>
-                <div className="font-semibold">Admin Login</div>
+                <div className="font-semibold text-sm">Admin Portal</div>
               </Link>
             </div>
           </div>
@@ -602,49 +602,66 @@ const Home = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl mx-auto">
-            <div className="bg-white rounded-xl shadow-lg p-8">
-              <h3 className="text-2xl font-bold text-gray-800 mb-6">Contact Information</h3>
+            <div className="bg-white rounded-3xl shadow-xl p-8 md:p-10 border border-indigo-50/50">
+              <h3 className="text-3xl font-extrabold text-gray-900 mb-10 text-center md:text-left relative">
+                Contact Information
+                <span className="absolute bottom-[-12px] left-1/2 md:left-0 transform md:transform-none -translate-x-1/2 md:translate-x-0 w-20 h-1.5 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full"></span>
+              </h3>
 
-              <div className="space-y-4">
-                <div className="flex items-start">
-                  <div className="text-2xl mr-4">📍</div>
-                  <div>
-                    <p className="font-semibold text-gray-800">Address</p>
-                    <p className="text-gray-600">Above Corporation Bank, Saguna More<br />Patna - 800001, Bihar</p>
+              <div className="space-y-6">
+                <div className="group flex items-center p-4 rounded-2xl bg-indigo-50/30 hover:bg-white hover:shadow-lg transition-all duration-300 border border-transparent hover:border-indigo-100">
+                  <div className="w-14 h-14 bg-indigo-600 rounded-2xl flex items-center justify-center text-2xl shadow-md group-hover:scale-110 transition-transform flex-shrink-0">
+                    📍
+                  </div>
+                  <div className="ml-6">
+                    <p className="text-xs font-bold text-indigo-600 uppercase tracking-[0.2em] mb-1">Address</p>
+                    <p className="text-gray-800 font-bold leading-relaxed">
+                      Above Corporation Bank, Saguna More<br />
+                      Patna - 800001, Bihar
+                    </p>
                   </div>
                 </div>
 
-                <div className="flex items-start">
-                  <div className="text-2xl mr-4">📞</div>
-                  <div>
-                    <p className="font-semibold text-gray-800">Phone</p>
-                    <p className="text-gray-600">+91-0612-XXXXXXX</p>
+                <div className="group flex items-center p-4 rounded-2xl bg-purple-50/30 hover:bg-white hover:shadow-lg transition-all duration-300 border border-transparent hover:border-purple-100">
+                  <div className="w-14 h-14 bg-purple-600 rounded-2xl flex items-center justify-center text-2xl shadow-md group-hover:scale-110 transition-transform flex-shrink-0">
+                    📞
+                  </div>
+                  <div className="ml-6">
+                    <p className="text-xs font-bold text-purple-600 uppercase tracking-[0.2em] mb-1">Phone</p>
+                    <p className="text-gray-800 font-bold text-lg">+91-0612-XXXXXXX</p>
                   </div>
                 </div>
 
-                <div className="flex items-start">
-                  <div className="text-2xl mr-4">✉️</div>
-                  <div>
-                    <p className="font-semibold text-gray-800">Email</p>
-                    <p className="text-gray-600">info@oasisjeeclasses.com</p>
+                <div className="group flex items-center p-4 rounded-2xl bg-pink-50/30 hover:bg-white hover:shadow-lg transition-all duration-300 border border-transparent hover:border-pink-100">
+                  <div className="w-14 h-14 bg-pink-600 rounded-2xl flex items-center justify-center text-2xl shadow-md group-hover:scale-110 transition-transform flex-shrink-0">
+                    ✉️
+                  </div>
+                  <div className="ml-6">
+                    <p className="text-xs font-bold text-pink-600 uppercase tracking-[0.2em] mb-1">Email</p>
+                    <p className="text-gray-800 font-bold">info@oasisjeeclasses.com</p>
                   </div>
                 </div>
 
-                <div className="flex items-start">
-                  <div className="text-2xl mr-4">🕒</div>
-                  <div>
-                    <p className="font-semibold text-gray-800">Office Hours</p>
-                    <p className="text-gray-600">Mon - Sat: 9:00 AM - 6:00 PM<br />Sunday: By Appointment</p>
+                <div className="group flex items-center p-4 rounded-2xl bg-blue-50/30 hover:bg-white hover:shadow-lg transition-all duration-300 border border-transparent hover:border-blue-100">
+                  <div className="w-14 h-14 bg-blue-600 rounded-2xl flex items-center justify-center text-2xl shadow-md group-hover:scale-110 transition-transform flex-shrink-0">
+                    🕒
+                  </div>
+                  <div className="ml-6">
+                    <p className="text-xs font-bold text-blue-600 uppercase tracking-[0.2em] mb-1">Office Hours</p>
+                    <p className="text-gray-800 font-bold">
+                      Mon - Sat: 9:00 AM - 6:00 PM<br />
+                      <span className="text-gray-500 font-semibold text-sm">Sunday: By Appointment</span>
+                    </p>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+            <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100 h-[500px]">
               <iframe
                 src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3598.0743445!2d85.1376!3d25.5941!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMjXCsDM1JzM4LjgiTiA4NcKwMDgnMTUuNCJF!5e0!3m2!1sen!2sin!4v1234567890"
                 width="100%"
-                height="400"
+                height="100%"
                 style={{ border: 0 }}
                 allowFullScreen=""
                 loading="lazy"
@@ -652,6 +669,19 @@ const Home = () => {
                 className="w-full h-full"
               ></iframe>
             </div>
+          </div>
+
+          <div className="max-w-6xl mx-auto mt-12 px-4">
+            <a href="#demo-form" className="p-8 bg-gradient-to-r from-blue-600 to-indigo-700 rounded-[2rem] text-white shadow-2xl flex flex-col md:flex-row items-center justify-between group hover:shadow-blue-500/30 transition-all duration-300 transform hover:-translate-y-1">
+              <div className="text-center md:text-left mb-6 md:mb-0">
+                <h4 className="font-black text-2xl mb-1">Still confused about your journey?</h4>
+                <p className="text-blue-100 font-medium opacity-90">Book a 1-on-1 counseling session or a free demo class today.</p>
+              </div>
+              <div className="flex items-center gap-4 bg-white/20 px-8 py-4 rounded-2xl backdrop-blur-sm group-hover:bg-white group-hover:text-blue-600 transition-all duration-300 font-bold whitespace-nowrap">
+                Get Started Now
+                <span className="text-2xl transition-transform duration-300 group-hover:translate-x-2">→</span>
+              </div>
+            </a>
           </div>
         </div>
       </section>

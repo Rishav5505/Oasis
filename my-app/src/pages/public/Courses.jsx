@@ -99,9 +99,12 @@ const Courses = () => {
                     <span className="text-sm text-gray-400 font-medium uppercase tracking-wider block mb-1">Fee Structure</span>
                     <span className="text-3xl font-extrabold text-gray-900">{course.price}</span>
                   </div>
-                  <button className={`w-full py-4 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all duration-300 ${course.popular ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-xl shadow-indigo-200' : 'bg-gray-100 text-gray-900 hover:bg-gray-200'}`}>
+                  <a
+                    href="/#demo-form"
+                    className={`w-full py-4 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all duration-300 ${course.popular ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-xl shadow-indigo-200' : 'bg-gray-100 text-gray-900 hover:bg-gray-200'}`}
+                  >
                     Enroll Now <FaAngleRight className="group-hover:translate-x-1 transition-transform" />
-                  </button>
+                  </a>
                 </div>
               </div>
             ))}

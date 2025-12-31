@@ -21,6 +21,7 @@ require('./models/StudyMaterial');
 require('./models/Otp');
 require('./models/Lead');
 require('./models/Notification');
+require('./models/Schedule');
 
 const app = express();
 app.use(cors());
@@ -50,6 +51,7 @@ app.use('/api/attendance/teacher', require('./routes/teacherAttendance')); // Ne
 app.use('/api/teacher', require('./routes/teacher'));
 app.use('/api/leads', require('./routes/leads'));
 app.use('/api/public', require('./routes/public'));
+app.use('/api/schedule', require('./routes/schedule'));
 
 const PORT = process.env.PORT || 5002;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

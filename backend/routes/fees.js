@@ -5,6 +5,67 @@ const Student = require('../models/Student');
 const User = require('../models/User'); // Import User model to be safe
 const auth = require('../middleware/auth');
 const roleAuth = require('../middleware/roleAuth');
+const Razorpay = require('razorpay');
+const crypto = require('crypto');
+
+const razorpay = new Razorpay({
+    key_id: process.env.RAZORPAY_KEY_ID || 'rzp_test_eYqCAnN83D89mB', // Standard test key placeholder
+    key_secret: process.env.RAZORPAY_KEY_SECRET || 'test_secret'
+});
+
+// Create Razorpay Order
+router.post('/razorpay/order', auth, roleAuth('parent'), async (req, res) => {
+    const { amount } = req.body;
+    try {
+        const options = {
+            amount: amount * 100, // amount in the smallest currency unit (paise)
+            currency: "INR",
+            receipt: `receipt_${Date.now()}`,
+        };
+        const order = await razorpay.orders.create(options);
+        res.json(order);
+    } catch (err) {
+        console.error('Razorpay Order Error:', err);
+        res.status(500).json({ message: 'Error creating Razorpay order' });
+    }
+});
+
+// Verify Razorpay Payment
+router.post('/razorpay/verify', auth, roleAuth('parent'), async (req, res) => {
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, studentId, amount } = req.body;
+    const body = razorpay_order_id + "|" + razorpay_payment_id;
+
+    const expectedSignature = crypto
+        .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET || 'test_secret')
+        .update(body.toString())
+        .digest("hex");
+
+    if (expectedSignature === razorpay_signature) {
+        try {
+            let fee = await Fee.findOne({ studentId });
+            if (!fee) return res.status(404).json({ message: 'Fee record not found' });
+
+            const paymentAmount = Number(amount);
+            fee.paidFees += paymentAmount;
+            fee.pendingFees = Math.max(0, fee.pendingFees - paymentAmount);
+
+            fee.payments.push({
+                amount: paymentAmount,
+                date: new Date(),
+                mode: 'Razorpay',
+                transactionId: razorpay_payment_id
+            });
+
+            await fee.save();
+            res.json({ message: 'Payment verified and recorded', fee });
+        } catch (err) {
+            console.error('Verification Save Error:', err);
+            res.status(500).json({ message: 'Payment verified but failed to update record' });
+        }
+    } else {
+        res.status(400).json({ message: 'Invalid signature' });
+    }
+});
 
 const router = express.Router();
 
